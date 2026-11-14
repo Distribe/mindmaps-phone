@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Ek5GkLxJu1Xy6ufwNAXBJcSR0OMy5SHq/ZiHB4KthhM=' 'sha256-00eg/ZptkCQr15SwTX4NWVdohTAZyAKGUc5cIbHOpP4='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-ohsY7vhUbYI+bp89fpe39p9Z8nS59q4herV24TosQ9U=' 'sha256-aBbWhvwwBXAc+9g1TxVLDpClwQ6RxTofxrMDgime6Q4='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1061,7 +1061,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '6 (14 Nov 2026, 21:58)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '7 (14 Nov 2026, 22:05)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -9947,7 +9947,7 @@ canvas.addEventListener('pointerdown', e => {
   } else if ((card && !isSel('node', card.dataset.id) && !multiSel.has(card.dataset.id) || link && !card) && e.button === 0 && PHONE_ON && e.pointerType === 'touch') {
     // the phone: a finger on a card that isn't picked (or on a line) moves the map; a tap picks it (then drag the card to move it)
     drag = {type: 'pan', sx: e.clientX, sy: e.clientY, tx: view.tx, ty: view.ty, moved: false, tapCard: card ? card.dataset.id : '', tapLink: card ? '' : link.dataset.link, chip: card && e.target.closest('.chip[data-tag]')};
-    canvas.classList.add('panning');
+    if (!PHONE_ON) canvas.classList.add('panning');   // (the grabbing hand; not on the phone, which has no pointer: changing it restyles the whole map)
   } else if (card && e.button === 0) {
     const n = getNode(card.dataset.id);
     drag = {type: 'node', id: n.id, ox: p.x - at2(n).x, oy: p.y - at2(n).y, lx: p.x, ly: p.y, sx: e.clientX, sy: e.clientY, moved: false, el: card, chip: e.target.closest('.chip[data-tag]'), shapes: linkShape};   // (shapes: the lines as they are now, for a Shift-drop into one)
@@ -9958,7 +9958,7 @@ canvas.addEventListener('pointerdown', e => {
     drag = {type: 'box', x0: p.x, y0: p.y, sx: e.clientX, sy: e.clientY, moved: false};
   } else {
     drag = {type: 'pan', sx: e.clientX, sy: e.clientY, tx: view.tx, ty: view.ty, moved: false};
-    canvas.classList.add('panning');
+    if (!PHONE_ON) canvas.classList.add('panning');   // (the grabbing hand; not on the phone, which has no pointer: changing it restyles the whole map)
   }
   canvas.setPointerCapture(e.pointerId);
   e.preventDefault();
