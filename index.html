@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-ujKfElIfKh2JmhN5csF/bHg6ud4W4aJP7zsh5hCs3BY=' 'sha256-00eg/ZptkCQr15SwTX4NWVdohTAZyAKGUc5cIbHOpP4='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-PsLikXrK372VVsNx8sEmDFyCBuWmzW1ajOojsEUXt8Q=' 'sha256-00eg/ZptkCQr15SwTX4NWVdohTAZyAKGUc5cIbHOpP4='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1348,16 +1348,24 @@ body.phoneUI #btnPane{display:none!important}`;
 #canvas{background-image:none!important}
 .card,.card:hover,.card.selected{box-shadow:none!important;transition:none!important}
 .card.selected{outline:2px solid var(--accent);outline-offset:0}
-body.phMoving #world{will-change:transform}`;
+#world{will-change:transform}`;   /* (the map is kept ready as one picture, so a drag only slides it: see liteSetup) */
   function liteSetup() {
     const st = document.createElement('style'); st.textContent = liteCss; document.head.appendChild(st);
     for (const f of ['syncBlur', 'applyBlurView', 'updateBlurClip', 'renderMinimap']) if (typeof window[f] === 'function') window[f] = () => {};
     const ge = window.updateGroupEdges; let geLast = -1;   // group borders: only redrawn when the zoom changes, not on every move
     if (typeof ge === 'function') window.updateGroupEdges = function () { const k = edgeScale(); if (k === geLast) return; geLast = k; return ge.apply(this, arguments); };
-    const moving = on => document.body.classList.toggle('phMoving', on);
-    addEventListener('pointerdown', e => { if (e.pointerType === 'touch' && e.target instanceof Element && e.target.closest('#canvas')) moving(true); }, true);
-    const end = () => { if (!pts.size) setTimeout(() => { if (!pts.size) moving(false); }, 150); };
-    addEventListener('pointerup', end, true); addEventListener('pointercancel', end, true);
+    // The map is one ready-made picture the phone slides about (no redrawing when a drag starts). After a zoom, once
+    // you've stopped, it's drawn again at the new size so the words stay sharp.
+    const av = window.applyView; let sLast = 0, crisp = 0;
+    if (typeof av === 'function') window.applyView = function () {
+      const r = av.apply(this, arguments);
+      if (view.s !== sLast) { sLast = view.s; clearTimeout(crisp); crisp = setTimeout(() => {
+        if (pts.size) { sLast = 0; return; }   // (still pinching: wait)
+        const w = document.getElementById('world'); if (!w) return;
+        w.style.willChange = 'auto'; requestAnimationFrame(() => { w.style.willChange = ''; });
+      }, 250); }
+      return r;
+    };
   }
   function phoneSetup() {
     liteSetup();
