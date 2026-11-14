@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Vzq6Jpe0u0lMQQ132Rw7Pc+E8wUXB1DuiRNOQuo++BI=' 'sha256-00eg/ZptkCQr15SwTX4NWVdohTAZyAKGUc5cIbHOpP4='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Ek5GkLxJu1Xy6ufwNAXBJcSR0OMy5SHq/ZiHB4KthhM=' 'sha256-00eg/ZptkCQr15SwTX4NWVdohTAZyAKGUc5cIbHOpP4='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1061,7 +1061,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '5 (14 Nov 2026, 21:46)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '6 (14 Nov 2026, 21:58)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -1319,13 +1319,30 @@ body.drop7 #mapName{min-width:60px}
   P.openList = () => { if (token) mapsScreen(); else if (cfg) unlockScreen(); else setupScreen(); };
 
   /* ---------- the phone's layout: the map fills the screen; the list and a card's details slide up from the bottom ---------- */
-  const layoutCss = `body.phoneUI #minimap{display:none!important}
-body.phoneUI #left{left:8px!important;right:8px!important;width:auto!important;bottom:auto!important}
+  // Bars right out to the screen's edges (4px), the colour key in the corner, and the details sliding up from the
+  // bottom. While you type in the details, they fill the space above the keyboard (the map isn't needed then):
+  // --vvTop and --vvH follow the part of the screen the keyboard leaves (see fitKeyboard).
+  const layoutCss = `body.phoneUI{--edge:4px;--gap:4px}
+body.phoneUI #minimap{display:none!important}
+body.phoneUI #left{left:var(--edge)!important;right:var(--edge)!important;width:auto!important;bottom:auto!important;top:calc(var(--edge) * 2 + var(--h-topbar) + env(safe-area-inset-top))!important}
+body.phoneUI #right{top:calc(var(--edge) + env(safe-area-inset-top))!important}
+body.phoneUI.phTyping #left{z-index:40}
 body.phoneUI #topbar{width:auto!important}
-body.phoneUI #index,body.phoneUI #detail,body.phoneUI #scene{position:fixed!important;left:8px!important;right:8px!important;top:auto!important;bottom:calc(8px + env(safe-area-inset-bottom))!important;width:auto!important;max-height:56vh;z-index:16}
+body.phoneUI #index,body.phoneUI #detail,body.phoneUI #scene{position:fixed!important;left:var(--edge)!important;right:var(--edge)!important;top:auto!important;bottom:calc(var(--edge) + env(safe-area-inset-bottom))!important;width:auto!important;max-height:56vh;z-index:16}
+body.phoneUI.phTyping #detail{top:calc(var(--vvTop,0px) + var(--edge))!important;bottom:auto!important;height:calc(var(--vvH,100vh) - 2 * var(--edge));max-height:none;z-index:30}
 body.phoneUI #index,body.phoneUI #scene,body.phoneUI.phNoSel #detail{display:none!important}   /* (just the map, and a card's details when one is picked) */
+body.phoneUI #ckBox{right:var(--edge);bottom:calc(var(--edge) + env(safe-area-inset-bottom));padding:6px 8px}
 #phList{display:none}
 body.phoneUI #btnPane{display:none!important}`;
+  function fitKeyboard() {   // the part of the screen not under the keyboard
+    const v = window.visualViewport, r = document.documentElement.style;
+    if (!v) return;
+    r.setProperty('--vvTop', v.offsetTop + 'px'); r.setProperty('--vvH', v.height + 'px');
+  }
+  const typingIn = el => el instanceof Element && el.closest('#detail') && el.matches('input, textarea, select, [contenteditable]:not([contenteditable="false"])');
+  document.addEventListener('focusin', e => { if (typingIn(e.target)) { fitKeyboard(); document.body.classList.add('phTyping'); } });
+  document.addEventListener('focusout', () => setTimeout(() => { if (!typingIn(document.activeElement)) document.body.classList.remove('phTyping'); }, 50));
+  if (window.visualViewport) { visualViewport.addEventListener('resize', fitKeyboard); visualViewport.addEventListener('scroll', fitKeyboard); }
   const phoneSize = () => matchMedia('(max-width: 760px)').matches;
   function phoneLayout() {
     const b = document.body, on = phoneSize();
