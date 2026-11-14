@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-z2WUlQ4zUlh/jx7UHJlijnCTQpNTko/r3T65oQBZyJA=' 'sha256-00eg/ZptkCQr15SwTX4NWVdohTAZyAKGUc5cIbHOpP4='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Vzq6Jpe0u0lMQQ132Rw7Pc+E8wUXB1DuiRNOQuo++BI=' 'sha256-00eg/ZptkCQr15SwTX4NWVdohTAZyAKGUc5cIbHOpP4='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1061,7 +1061,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true};
+  const P = window.PHONE = {on: true, version: '5 (14 Nov 2026, 21:46)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -1376,6 +1376,11 @@ body.phoneUI #btnPane{display:none!important}`;
     btn.onclick = () => { document.body.classList.toggle('phList'); if (typeof updateBlurClip === 'function') updateBlurClip(); };
     const tb = document.getElementById('topbar'); tb.insertBefore(btn, tb.firstChild);
     const wrap = (name, after) => { const f = window[name]; if (typeof f !== 'function') return; window[name] = function (...a) { const r = f.apply(this, a); after(a); return r; }; };
+    wrap('renderSettings', () => {   // the page's version, at the top of the settings menu
+      const body = document.querySelector('#settings .p-body'); if (!body) return;
+      const v = document.createElement('div'); v.className = 'muted'; v.style.cssText = 'margin-bottom:10px;font-size:13px';
+      v.textContent = 'Phone version ' + P.version; body.insertBefore(v, body.firstChild);
+    });
     wrap('renderPanel', () => { phoneSel(); if (typeof updateBlurClip === 'function') updateBlurClip(); });
     wrap('select', a => { if (a[0] === 'node' && document.body.classList.contains('phList')) { document.body.classList.remove('phList'); phoneSel(); if (typeof updateBlurClip === 'function') updateBlurClip(); } });
     const fr = window.freeRect;   // the free part of the screen: below the name bar too
