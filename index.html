@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-ohsY7vhUbYI+bp89fpe39p9Z8nS59q4herV24TosQ9U=' 'sha256-aBbWhvwwBXAc+9g1TxVLDpClwQ6RxTofxrMDgime6Q4='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Y5ETKEbDkZG9PQOhGmA9ISgJKHYKAt5JqNas1jpwYks=' 'sha256-aBbWhvwwBXAc+9g1TxVLDpClwQ6RxTofxrMDgime6Q4='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1061,7 +1061,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '7 (14 Nov 2026, 22:05)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '8 (14 Nov 2026, 23:49)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -1155,6 +1155,66 @@ body.drop7 #mapName{min-width:60px}
     if (!r.ok) throw new Error('GitHub said ' + r.status + '.');
     return (await r.json()).content.sha;
   }
+
+  /* ---------- merging two edited copies, card by card (the same rules as Phone\mapmerge.py) ---------- */
+  // base: the version both sides last had; mine: the phone's; theirs: the laptop's. What only one side changed is
+  // taken from that side (different cards, or different parts of a card, combine; a card's tags combine). Where both
+  // changed the same words on a card, the phone's card stays and the laptop's is added beside it as a copy,
+  // "(laptop version)"; anything else that clashes (a position, the view) keeps the phone's.
+  const GONE = Symbol('gone'), WORDS = new Set(['title', 'summary', 'details', 'fields', 'tags']);
+  const same = (a, b) => {
+    if (a === b) return true;
+    if (typeof a !== 'object' || typeof b !== 'object' || !a || !b || Array.isArray(a) !== Array.isArray(b)) return false;
+    if (Array.isArray(a)) return a.length === b.length && a.every((x, i) => same(x, b[i]));
+    const ka = Object.keys(a), kb = Object.keys(b);
+    return ka.length === kb.length && ka.every(k => Object.prototype.hasOwnProperty.call(b, k) && same(a[k], b[k]));
+  };
+  const plainObj = x => x && typeof x === 'object' && !Array.isArray(x);
+  const keyOf = xs => { if (!xs.length || !xs.every(plainObj)) return null; for (const k of ['id', 'name']) if (xs.every(x => typeof x[k] === 'string')) return k; return null; };
+  function merge3(base, mine, theirs, label) {
+    let copies = 0, found = null;
+    const copyOf = card => { const c = JSON.parse(JSON.stringify(card)); c.id = Math.random().toString(36).slice(2, 12); c.title = (c.title || 'Untitled') + ` (${label} version)`;
+      for (const k of ['x', 'y']) if (typeof c[k] === 'number') c[k] += 40; for (const k of ['d3', 's2', 't2', 's2f', 'on', 'onT', 'onR']) delete c[k]; copies++; return c; };
+    const value = (b, m, t, path) => {
+      if (same(m, t)) return m; if (same(m, b)) return t; if (same(t, b)) return m;
+      if (plainObj(m) && plainObj(t)) {
+        const bb = plainObj(b) ? b : {}, out = {};
+        for (const k of [...Object.keys(m), ...Object.keys(t).filter(k => !(k in m))]) {
+          const r = value(k in bb ? bb[k] : GONE, k in m ? m[k] : GONE, k in t ? t[k] : GONE, [...path, k]);
+          if (r !== GONE) out[k] = r;
+        }
+        return out;
+      }
+      if (Array.isArray(m) && Array.isArray(t)) {
+        const bl = Array.isArray(b) ? b : [], key = keyOf([...m, ...t, ...bl]);
+        if (key) return keyed(bl, m, t, key, path);
+        if ([...m, ...t, ...bl].every(x => typeof x !== 'object' || x === null)) {   // words: combine
+          const out = m.filter(x => t.includes(x) || !bl.includes(x));
+          for (const x of t) if (!bl.includes(x) && !out.includes(x)) out.push(x);
+          return out;
+        }
+      }
+      if (m === GONE || t === GONE) return m === GONE ? t : m;   // (deleted on one side, changed on the other: kept)
+      if (found && path.slice(-3).some(p => WORDS.has(p))) found.push(path);
+      return m;
+    };
+    const keyed = (b, m, t, key, path) => {
+      const bi = new Map(b.map(x => [x[key], x])), mi = new Map(m.map(x => [x[key], x])), ti = new Map(t.map(x => [x[key], x]));
+      const out = [], extra = [];
+      for (const k of [...m.map(x => x[key]), ...t.map(x => x[key]).filter(k => !mi.has(k))]) {
+        const bx = bi.has(k) ? bi.get(k) : GONE, mx = mi.has(k) ? mi.get(k) : GONE, tx = ti.has(k) ? ti.get(k) : GONE;
+        if (mx === GONE || tx === GONE) { const here = mx === GONE ? tx : mx; if (bx === GONE || !same(here, bx)) out.push(here); continue; }
+        if (path[path.length - 1] === 'nodes') {   // a card: part by part; a clash in its words keeps theirs as a copy
+          const was = found; found = [];
+          const r = value(bx, mx, tx, [...path, k]); const f = found; found = was;
+          out.push(r); if (f.length) extra.push(copyOf(tx));
+        } else { const r = value(bx, mx, tx, [...path, k]); if (r !== GONE) out.push(r); }
+      }
+      return [...out, ...extra];
+    };
+    return {map: value(base, mine, theirs, []), copies};
+  }
+  P.merge3 = merge3;
 
   /* ---------- saving the open map ---------- */
   const stillOpen = () => cur && fileName === cur.name;   // (the map shown is still the one from GitHub: not replaced by something else)
@@ -1365,7 +1425,9 @@ body.phoneUI #btnPane{display:none!important}`;
 #canvas{background-image:none!important}
 .card,.card:hover,.card.selected{box-shadow:none!important;transition:none!important}
 .card.selected{outline:2px solid var(--accent);outline-offset:0}
-#world{will-change:transform}`;   /* (the map is kept ready as one picture, so a drag only slides it: see liteSetup) */
+#world{will-change:transform}
+#groups [filter]{filter:none!important}
+#groups g[filter*=gf]{opacity:.45}`;   /* (group areas: plain shading, no soft blurred edge, which is slow for a phone to draw as the map slides into view) */   /* (the map is kept ready as one picture, so a drag only slides it: see liteSetup) */
   function liteSetup() {
     const st = document.createElement('style'); st.textContent = liteCss; document.head.appendChild(st);
     for (const f of ['syncBlur', 'applyBlurView', 'updateBlurClip', 'renderMinimap']) if (typeof window[f] === 'function') window[f] = () => {};
