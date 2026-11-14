@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-W32SYmk3skJF0iNOna/4ViBgPe4ln9hJ/p7bICKTdG8=' 'sha256-Mvpjjs06qn6JN+zx7iVC98WVdBBu8IIFADZfKPpqfkQ='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-ujKfElIfKh2JmhN5csF/bHg6ud4W4aJP7zsh5hCs3BY=' 'sha256-00eg/ZptkCQr15SwTX4NWVdohTAZyAKGUc5cIbHOpP4='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1081,6 +1081,33 @@ body.drop7 #mapName{min-width:60px}
     const plain = await crypto.subtle.decrypt({name: 'AES-GCM', iv: unb64(box.iv)}, await keyFrom(pass, unb64(box.salt)), unb64(box.data));
     return dec.decode(plain);
   }
+  // Remembered on this phone (the default): the key is also locked with a second, random key made by the browser and
+  // kept in its own storage as "not extractable" (it can be used to unlock, never read out or copied off the phone),
+  // so a refresh or a new day opens straight to your maps. "Lock" forgets it and asks for the passcode again.
+  const idbDo = (mode, fn) => new Promise((res, rej) => {
+    const r = indexedDB.open('mmphone', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('k');
+    r.onerror = () => rej(r.error);
+    r.onsuccess = () => { const db = r.result, tx = db.transaction('k', mode), q = fn(tx.objectStore('k')); tx.oncomplete = () => { res(q && q.result); db.close(); }; tx.onerror = () => { rej(tx.error); db.close(); }; };
+  });
+  async function rememberPhone(secret) {
+    try {
+      const k = await crypto.subtle.generateKey({name: 'AES-GCM', length: 256}, false, ['encrypt', 'decrypt']), iv = crypto.getRandomValues(new Uint8Array(12));
+      const data = new Uint8Array(await crypto.subtle.encrypt({name: 'AES-GCM', iv}, k, enc.encode(secret)));
+      await idbDo('readwrite', st => st.put(k, 'device'));
+      cfg.dev = {iv: b64(iv), data: b64(data)}; localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
+    } catch (e) { /* (not remembered: it asks for the passcode next time) */ }
+  }
+  async function recall() {
+    if (!cfg.dev) return '';
+    try { const k = await idbDo('readonly', st => st.get('device')); if (!k) return '';
+      return dec.decode(await crypto.subtle.decrypt({name: 'AES-GCM', iv: unb64(cfg.dev.iv)}, k, unb64(cfg.dev.data))); } catch (e) { return ''; }
+  }
+  async function forgetPhone() {
+    try { await idbDo('readwrite', st => st.delete('device')); } catch (e) {}
+    if (cfg) { delete cfg.dev; try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (e) {} }
+  }
+  const LAST_KEY = 'mmphone.last';   // (only which map was open, to open it again: never anything in it)
   const readCfg = () => { try { const c = JSON.parse(localStorage.getItem(CFG_KEY)); return c && c.owner && c.repo && c.box ? c : null; } catch (e) { return null; } };
 
   /* ---------- GitHub ---------- */
@@ -1163,7 +1190,7 @@ body.drop7 #mapName{min-width:60px}
   addEventListener('beforeunload', e => { if (stillOpen() && dirty) { P.saveNow(true); e.preventDefault(); e.returnValue = ''; } });
   document.addEventListener('visibilitychange', () => {   // put away: saved at once; away a long time: locked again
     if (document.hidden) { hiddenAt = Date.now(); if (stillOpen() && dirty) P.saveNow(true); return; }
-    if (token && hiddenAt && Date.now() - hiddenAt > 15 * 60000 && !dirty) location.reload();
+    if (token && cfg && !cfg.dev && hiddenAt && Date.now() - hiddenAt > 15 * 60000 && !dirty) location.reload();
   });
 
   /* ---------- the screens: set up, unlock, your maps ---------- */
@@ -1182,6 +1209,8 @@ body.drop7 #mapName{min-width:60px}
 #phGate .mrow:active,#phGate .mrow.on{background:var(--hover)}
 #phGate .mrow span{color:var(--muted);font-size:13px;white-space:nowrap}
 #phGate .btn{padding:9px 14px;font-size:15px}
+#phGate label.rem{flex-direction:row;align-items:center;gap:8px;font-size:14px}
+#phGate label.rem input{width:auto}
 #canvas{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 #menu [data-menu="new"],#menu [data-menu="saveas"],#menu [data-menu="export"],#menu [data-menu="revert"],#menu [data-menu="versions"],#menu [data-menu="reopenwin"],#menu [data-menu="autosave"],#menu [data-menu="example"]{display:none!important}`;
   let gate;
@@ -1205,6 +1234,7 @@ body.drop7 #mapName{min-width:60px}
       <label>Key (fine-grained token)<input id="phToken" type="password" autocomplete="off"></label>
       <label>A passcode for this phone (8 or more characters)<input id="phPass" type="password" autocomplete="new-password"></label>
       <label>The passcode again<input id="phPass2" type="password" autocomplete="new-password"></label>
+      <label class="rem"><input type="checkbox" id="phRem" checked> Remember this phone (no passcode each time)</label>
       <div class="err">${esc(msg || '')}</div>
       <div class="row"><span class="grow"></span><button class="btn accent" id="phGo">Connect</button></div>`);
     g.querySelector('#phGo').onclick = async e => {
@@ -1221,6 +1251,7 @@ body.drop7 #mapName{min-width:60px}
       busy(b, true, 'Locking the key…');
       cfg.box = await lock(key, pass);
       try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch (x) { return err('This browser won’t keep settings (private browsing?).'); }
+      if (g.querySelector('#phRem').checked) await rememberPhone(key);
       mapsScreen();
     };
   }
@@ -1228,28 +1259,31 @@ body.drop7 #mapName{min-width:60px}
     const g = screen(`<h2>Mind Map</h2>
       <p>${esc(cfg.owner)}/${esc(cfg.repo)}</p>
       <label>Passcode<input id="phPass" type="password" autocomplete="current-password"></label>
+      <label class="rem"><input type="checkbox" id="phRem" checked> Remember this phone</label>
       <div class="err">${esc(msg || '')}</div>
       <div class="row"><button class="btn" id="phForget">Forget this phone</button><span class="grow"></span><button class="btn accent" id="phGo">Unlock</button></div>`);
     const go = async () => {
       const b = g.querySelector('#phGo'); busy(b, true, 'Unlocking…');
       try { token = await unlock(cfg.box, g.querySelector('#phPass').value); }
       catch (x) { busy(b, false, 'Unlock'); g.querySelector('.err').textContent = 'Wrong passcode.'; g.querySelector('#phPass').select(); return; }
-      mapsScreen();
+      if (g.querySelector('#phRem').checked) await rememberPhone(token);
+      openLast();
     };
     g.querySelector('#phGo').onclick = go;
     g.querySelector('#phPass').onkeydown = e => { if (e.key === 'Enter') go(); };
-    g.querySelector('#phForget').onclick = () => {
+    g.querySelector('#phForget').onclick = async () => {
       if (!confirm('Remove the locked key and settings from this phone? (Your maps in GitHub aren’t touched.)')) return;
-      try { localStorage.removeItem(CFG_KEY); } catch (x) {}
+      await forgetPhone();
+      try { localStorage.removeItem(CFG_KEY); localStorage.removeItem(LAST_KEY); } catch (x) {}
       cfg = null; token = ''; setupScreen();
     };
   }
-  async function mapsScreen() {
+  async function mapsScreen(auto) {   // (auto: a map to open straight away, if it's there)
     const g = screen(`<div class="row"><h2 class="grow">Your maps</h2>${cur ? '<button class="btn" id="phClose">Back to the map</button>' : ''}</div>
       <div class="maps"><p class="muted">Loading…</p></div>
       <div class="err"></div>
-      <div class="row"><button class="btn" id="phLock">Lock</button><span class="grow"></span><button class="btn" id="phRe">Refresh</button></div>`);
-    g.querySelector('#phLock').onclick = async () => { if (stillOpen() && dirty) await P.saveNow(true); location.reload(); };
+      <div class="row"><button class="btn" id="phLock" title="Forget this phone's remembered unlock: the passcode is asked for next time">Lock</button><span class="grow"></span><button class="btn" id="phRe">Refresh</button></div>`);
+    g.querySelector('#phLock').onclick = async () => { if (stillOpen() && dirty) await P.saveNow(true); await forgetPhone(); location.reload(); };
     g.querySelector('#phRe').onclick = () => mapsScreen();
     if (cur) g.querySelector('#phClose').onclick = close;
     let maps;
@@ -1268,12 +1302,19 @@ body.drop7 #mapName{min-width:60px}
         cur = null; loadText(text, null, m.name);
         if (fileName === m.name) {
           cur = {path: m.path, sha: m.sha, name: m.name}; dirty = false; renderHeader(); close();
+          try { localStorage.setItem(LAST_KEY, m.path); } catch (x) {}
           if (phoneSize() && typeof fit === 'function') setTimeout(() => {   // the whole map on the small screen (a big one: its busiest part, readable)
             fit(); if (view.s < 0.45 && typeof openView === 'function') { openView(); zoomAt(innerWidth / 2, innerHeight / 2, 0.65 / view.s); }
           }, 60);
         }
       } catch (x) { g.querySelector('.err').textContent = x.message; row.querySelector('span').textContent = ''; }
     };
+    const again = auto && maps.findIndex(m => m.path === auto);
+    if (auto && again >= 0) box.querySelector(`.mrow[data-i="${again}"]`).click();
+  }
+  async function openLast() {   // straight back into the map you had open (if it's still there), else the list
+    let last = ''; try { last = localStorage.getItem(LAST_KEY) || ''; } catch (e) {}
+    await mapsScreen(last);
   }
   P.openList = () => { if (token) mapsScreen(); else if (cfg) unlockScreen(); else setupScreen(); };
 
@@ -1282,9 +1323,7 @@ body.drop7 #mapName{min-width:60px}
 body.phoneUI #left{left:8px!important;right:8px!important;width:auto!important;bottom:auto!important}
 body.phoneUI #topbar{width:auto!important}
 body.phoneUI #index,body.phoneUI #detail,body.phoneUI #scene{position:fixed!important;left:8px!important;right:8px!important;top:auto!important;bottom:calc(8px + env(safe-area-inset-bottom))!important;width:auto!important;max-height:56vh;z-index:16}
-body.phoneUI #index{height:56vh}
-body.phoneUI:not(.phList) #index,body.phoneUI.phList #detail,body.phoneUI.phNoSel #detail{display:none!important}
-body.phoneUI #phList{display:inline-flex}
+body.phoneUI #index,body.phoneUI #scene,body.phoneUI.phNoSel #detail{display:none!important}   /* (just the map, and a card's details when one is picked) */
 #phList{display:none}
 body.phoneUI #btnPane{display:none!important}`;
   const phoneSize = () => matchMedia('(max-width: 760px)').matches;
@@ -1300,7 +1339,28 @@ body.phoneUI #btnPane{display:none!important}`;
     const none = !selected && !tagPane && !sleeveSel;
     document.body.classList.toggle('phNoSel', none);
   }
+  // Light on the phone: the costly effects are left out, so panning and zooming stay smooth. No frosted glass (a
+  // blurred copy of the whole map, moved with it: the panels are solid instead), no minimap, no dot grid (it was
+  // repainted on every move), no card shadows, and the map is moved as one picture while a finger is down. (The
+  // draft above / tracing over one is off on the phone too: see refOn in mindmap.html.)
+  const liteCss = `#blurLayer,#minimap,#refBar{display:none!important}
+.panel{background:color-mix(in srgb,var(--glass-solid) 45%,#2e2f33)!important;box-shadow:0 2px 10px rgba(0,0,0,.18)!important}
+#canvas{background-image:none!important}
+.card,.card:hover,.card.selected{box-shadow:none!important;transition:none!important}
+.card.selected{outline:2px solid var(--accent);outline-offset:0}
+body.phMoving #world{will-change:transform}`;
+  function liteSetup() {
+    const st = document.createElement('style'); st.textContent = liteCss; document.head.appendChild(st);
+    for (const f of ['syncBlur', 'applyBlurView', 'updateBlurClip', 'renderMinimap']) if (typeof window[f] === 'function') window[f] = () => {};
+    const ge = window.updateGroupEdges; let geLast = -1;   // group borders: only redrawn when the zoom changes, not on every move
+    if (typeof ge === 'function') window.updateGroupEdges = function () { const k = edgeScale(); if (k === geLast) return; geLast = k; return ge.apply(this, arguments); };
+    const moving = on => document.body.classList.toggle('phMoving', on);
+    addEventListener('pointerdown', e => { if (e.pointerType === 'touch' && e.target instanceof Element && e.target.closest('#canvas')) moving(true); }, true);
+    const end = () => { if (!pts.size) setTimeout(() => { if (!pts.size) moving(false); }, 150); };
+    addEventListener('pointerup', end, true); addEventListener('pointercancel', end, true);
+  }
   function phoneSetup() {
+    liteSetup();
     const st = document.createElement('style'); st.textContent = layoutCss; document.head.appendChild(st);
     const btn = document.createElement('button');
     btn.id = 'phList'; btn.className = 'btn icon'; btn.title = 'The list of cards';
@@ -1324,7 +1384,9 @@ body.phoneUI #btnPane{display:none!important}`;
     phoneSetup();
     if (!window.isSecureContext || !crypto.subtle) { screen('<h2>Mind Map</h2><p>This page only works over https.</p>'); return; }
     cfg = readCfg();
-    if (cfg) unlockScreen(); else setupScreen();
+    if (!cfg) { setupScreen(); return; }
+    screen('<h2>Mind Map</h2><p class="muted">Opening…</p>');
+    recall().then(t => { if (t) { token = t; openLast(); } else unlockScreen(); });
   };
 
   /* ---------- touch: pinch to zoom, press and hold for the menu ---------- */
@@ -1333,6 +1395,7 @@ body.phoneUI #btnPane{display:none!important}`;
   const onMap = e => { const c = canvasEl(); return c && e.target instanceof Element && c.contains(e.target); };
   const cancelMain = id => {   // stop whatever the first finger started (a pan, a card drag)
     const c = canvasEl();
+    if (typeof drag !== 'undefined' && drag && drag.type === 'pan') { drag = null; c.classList.remove('panning'); return; }   // (a pan: just stopped; no need to redraw the map)
     try { c.dispatchEvent(new PointerEvent('pointercancel', {pointerId: id, bubbles: true, pointerType: 'touch'})); } catch (e) {}
     if (typeof endDragHold === 'function') endDragHold();
   };
@@ -7903,8 +7966,8 @@ function refDraft() {
   if (!d || d.id === project.cur) { const i = project.drafts.indexOf(curDraft()); d = project.drafts[i - 1] || project.drafts.find(x => x.id !== project.cur) || null; if (d) r.draft = d.id; }
   return d;
 }
-const refOn = () => !SAT && !!(state.settings.ref && state.settings.ref.show && !state.settings.ref.under && (refMapFile() || project.drafts.length > 1) && refDraft());
-const underOn = () => !SAT && !REF && !!(state.settings.ref && state.settings.ref.show && state.settings.ref.under && (refMapFile() || project.drafts.length > 1) && refDraft());
+const refOn = () => !SAT && !PHONE_ON && !!(state.settings.ref && state.settings.ref.show && !state.settings.ref.under && (refMapFile() || project.drafts.length > 1) && refDraft());
+const underOn = () => !SAT && !REF && !PHONE_ON && !!(state.settings.ref && state.settings.ref.show && state.settings.ref.under && (refMapFile() || project.drafts.length > 1) && refDraft());
 const refPost = m => { if (!refReady) return; if (refExt) refExt.bc.postMessage(m); else if (refFrame) refFrame.contentWindow.postMessage(m, '*'); };
 function refShow(on) {
   const r = refSet(); r.show = on;
@@ -9843,6 +9906,10 @@ canvas.addEventListener('pointerdown', e => {
   } else if (handle && card && e.button === 0) {
     drag = {type: 'connect', from: card.dataset.id};
     tempLink = {from: card.dataset.id, x: p.x, y: p.y};
+  } else if ((card && !isSel('node', card.dataset.id) && !multiSel.has(card.dataset.id) || link && !card) && e.button === 0 && PHONE_ON && e.pointerType === 'touch') {
+    // the phone: a finger on a card that isn't picked (or on a line) moves the map; a tap picks it (then drag the card to move it)
+    drag = {type: 'pan', sx: e.clientX, sy: e.clientY, tx: view.tx, ty: view.ty, moved: false, tapCard: card ? card.dataset.id : '', tapLink: card ? '' : link.dataset.link, chip: card && e.target.closest('.chip[data-tag]')};
+    canvas.classList.add('panning');
   } else if (card && e.button === 0) {
     const n = getNode(card.dataset.id);
     drag = {type: 'node', id: n.id, ox: p.x - at2(n).x, oy: p.y - at2(n).y, lx: p.x, ly: p.y, sx: e.clientX, sy: e.clientY, moved: false, el: card, chip: e.target.closest('.chip[data-tag]'), shapes: linkShape};   // (shapes: the lines as they are now, for a Shift-drop into one)
@@ -10067,6 +10134,8 @@ canvas.addEventListener('pointerup', e => {
   } else if (d.type === 'pan') {
     autosaveSoon();
     if (d.moved) return;
+    if (d.tapLink) { select('link', d.tapLink); return; }   // (the phone: a tap on a line or a card picks it)
+    if (d.tapCard) { const n = getNode(d.tapCard); if (!n) return; if (d.chip) { openTag(d.chip.dataset.tag); return; } const dbl = isDoubleClick(n.id, e); if (!isSel('node', n.id)) select('node', n.id); if (dbl) startCardEdit(n.id); return; }
     if (isDoubleClick('bg', e)) { const p = toWorld(e); addNode(p.x - 112, p.y - 20); }
     else { if (multiSel.size || multiSk.size) { clearMulti(); renderMap(); renderSketches(); } if (selected) select(null); if (sleeveSel) { sleeveSel = null; renderPanel(); } }
   } else if (d.type === 'connect') {
