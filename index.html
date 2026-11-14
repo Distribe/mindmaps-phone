@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-PsLikXrK372VVsNx8sEmDFyCBuWmzW1ajOojsEUXt8Q=' 'sha256-00eg/ZptkCQr15SwTX4NWVdohTAZyAKGUc5cIbHOpP4='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-z2WUlQ4zUlh/jx7UHJlijnCTQpNTko/r3T65oQBZyJA=' 'sha256-00eg/ZptkCQr15SwTX4NWVdohTAZyAKGUc5cIbHOpP4='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1447,7 +1447,15 @@ body.phoneUI #btnPane{display:none!important}`;
   };
   addEventListener('pointerup', lift, true);
   addEventListener('pointercancel', lift, true);
-  document.addEventListener('gesturestart', e => e.preventDefault());   // (Safari's own page zoom: the map zooms instead)
+  document.addEventListener('gesturestart', e => e.preventDefault());
+  // Safari on the iPhone watches the start of every touch to decide whether it's a scroll, a zoom, a text selection
+  // or a press-and-hold, and only then hands the moves to the page: a pause before a drag gets going. Saying "the page
+  // handles touches on the map itself" (cancelling touchstart there) skips that wait. The map works from pointer
+  // events, which still come; typing boxes on the map are left alone so they can be tapped into.
+  const typing = t => t instanceof Element && t.closest('input, textarea, select, [contenteditable]:not([contenteditable="false"])');
+  const own = e => { if (e.target instanceof Element && e.target.closest('#canvas') && !typing(e.target) && e.cancelable) e.preventDefault(); };
+  document.addEventListener('touchstart', own, {passive: false});
+  document.addEventListener('touchmove', own, {passive: false});   // (Safari's own page zoom: the map zooms instead)
 })();
 </script>
 <script>
