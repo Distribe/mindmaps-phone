@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-qwlYAW3FOGFzH8uHwJdpiIr6N9HOfcyLMvKNk3FR+Ek=' 'sha256-QfBrLlu/9IJgnIWXhmxP0LxahewiCzJhUjn30YjVrUQ='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-PSbHuPvIbzGhC5gUqJPVcdKS4A42W27a6Jiq0gkl9tA=' 'sha256-QfBrLlu/9IJgnIWXhmxP0LxahewiCzJhUjn30YjVrUQ='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1067,7 +1067,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '10 (15 Nov 2026, 00:58)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '11 (15 Nov 2026, 01:05)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -1454,7 +1454,10 @@ body.phoneUI #btnPane{display:none!important}`;
     if (!ulAble(document.activeElement)) document.body.classList.remove('phTypingAny');
   }, 50));
   if (window.visualViewport) { visualViewport.addEventListener('resize', fitKeyboard); visualViewport.addEventListener('scroll', fitKeyboard); }
-  const phoneSize = () => matchMedia('(max-width: 760px), (max-height: 500px)').matches;   // (a phone, upright or on its side)
+  // A phone, upright or on its side: told by its screen (which stays the same however it's turned: the window's size
+  // can lag behind a turn on an iPhone), or by a small window.
+  const SMALL_Q = '(max-width: 760px), (max-height: 500px)';
+  const phoneSize = () => (matchMedia('(pointer: coarse)').matches && Math.min(window.screen.width, window.screen.height) <= 600) || matchMedia(SMALL_Q).matches;
   function phoneLayout() {
     const b = document.body, on = phoneSize();
     b.classList.toggle('phoneUI', on);
@@ -1536,6 +1539,8 @@ body.phoneUI #btnPane{display:none!important}`;
       return r;
     };
     addEventListener('resize', phoneLayout);
+    try { matchMedia(SMALL_Q).addEventListener('change', phoneLayout); matchMedia('(orientation: landscape)').addEventListener('change', phoneLayout); } catch (e) {}
+    addEventListener('orientationchange', () => { for (const t of [100, 400, 900]) setTimeout(phoneLayout, t); });   // (once the turn has settled)
     phoneLayout();
   }
   P.start = () => {
