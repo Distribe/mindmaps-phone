@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-QHs4ccStmFFzBN1FS9NLxaAreSStnhm+s8Ai0lrUwes=' 'sha256-oF2GEaPd/uHNG0L5cRlor0YKK8SSD+ho76xqSfdd0hI='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-DAPAgtPJk/cqlsWXcuv8t7wlYAdrINb9Ey/fyrxsl4E=' 'sha256-oF2GEaPd/uHNG0L5cRlor0YKK8SSD+ho76xqSfdd0hI='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1067,7 +1067,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '13 (15 Nov 2026, 01:23)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '14 (15 Nov 2026, 01:27)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -1543,6 +1543,10 @@ body.phoneUI #btnPane{display:none!important}`;
       const body = document.querySelector('#settings .p-body'); if (!body) return;
       const v = document.createElement('div'); v.className = 'muted'; v.style.cssText = 'margin-bottom:10px;font-size:13px';
       v.textContent = 'Phone version ' + P.version; body.insertBefore(v, body.firstChild);
+      // A fresh copy of the page (GitHub lets the phone keep it for up to 10 minutes): the address made new, so nothing kept is used
+      const up = document.createElement('button'); up.className = 'btn'; up.textContent = 'Get the latest version'; up.style.cssText = 'margin:-4px 0 12px';
+      up.onclick = async () => { if (stillOpen() && dirty) await P.saveNow(true); location.replace(location.pathname + '?v=' + Date.now()); };
+      v.after(up);
     });
     wrap('renderPanel', () => { phoneSel(); if (typeof updateBlurClip === 'function') updateBlurClip(); });
     const fr = window.freeRect;   // the free part of the screen: below the name bar too
