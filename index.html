@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-DAPAgtPJk/cqlsWXcuv8t7wlYAdrINb9Ey/fyrxsl4E=' 'sha256-oF2GEaPd/uHNG0L5cRlor0YKK8SSD+ho76xqSfdd0hI='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/6o5tij2oZlilLbAEyJRuLcoKdw6CzBRxmSnljaRwvg=' 'sha256-oF2GEaPd/uHNG0L5cRlor0YKK8SSD+ho76xqSfdd0hI='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1067,7 +1067,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '14 (15 Nov 2026, 01:27)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '15 (15 Nov 2026, 01:30)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -1412,38 +1412,31 @@ body.drop7 #mapName{min-width:60px}
   P.openList = () => { if (token) mapsScreen(); else if (cfg) unlockScreen(); else setupScreen(); };
 
   /* ---------- the phone's layout: the map fills the screen, with a card's details when one is picked ---------- */
-  // Upright: the two bars across the top (the view bar centred), the colour key in the corner, and the details
-  // sliding up from the bottom. On its side: the bars share the top row, and the details run down the left, the
-  // full height. (No card list: the menu's "Table of all cards" has them all, full screen.) While you type in the
+  // Upright: the two bars across the top (the view bar centred), the colour key up the right-hand side (clear of the
+  // screen's rounded corner), and the details sliding up from the bottom. On its side: the bars share the top row,
+  // and the details run down the left, the full height, close to the edge (the notch takes little room at the top). (No card list: the menu's "Table of all cards" has them all, full screen.) While you type in the
   // details, they fill the space above the keyboard (the map isn't needed then): --vvTop and --vvH follow the part of
   // the screen the keyboard leaves (see fitKeyboard).
-  // On the phone everything is framed to the screen's edges (no floating panels: the room is precious). The two
-  // bars sit on one strip across the top (#phTop, which also runs up behind the phone's status bar); the details
-  // are a sheet along the bottom when upright, and a strip down the left, full height, on its side (its background
-  // runs in behind the notch, its words kept clear of it). The colour key sits on the right-hand edge, above the
-  // screen's rounded corner.
-  const layoutCss = `body.phoneUI{--edge:0px;--gap:0px}
+  const layoutCss = `body.phoneUI{--edge:4px;--gap:4px}
 body.phoneUI #minimap{display:none!important}
-#phTop{display:none}
-body.phoneUI #phTop{display:block;position:fixed;left:0;right:0;top:0;height:var(--phTopH,0px);z-index:4;border-radius:0!important;border:0!important;border-bottom:1px solid var(--line)!important;box-shadow:none!important;padding:0}
-body.phoneUI #topbar,body.phoneUI #viewbar{background:transparent!important;border-color:transparent!important;box-shadow:none!important;border-radius:0!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
-body.phoneUI #left{left:0!important;right:0!important;width:auto!important;bottom:auto!important;top:calc(var(--h-topbar) + env(safe-area-inset-top))!important}
-body.phoneUI #right{top:env(safe-area-inset-top)!important}
+body.phoneUI #left{left:var(--edge)!important;right:var(--edge)!important;width:auto!important;bottom:auto!important;top:calc(var(--edge) * 2 + var(--h-topbar) + env(safe-area-inset-top))!important}
+body.phoneUI #right{top:calc(var(--edge) + env(safe-area-inset-top))!important}
 body.phoneUI.phTyping #left{z-index:40}
 body.phoneUI #topbar{width:auto!important}
-body.phoneUI #index,body.phoneUI #detail,body.phoneUI #scene{position:fixed!important;left:0!important;right:0!important;top:auto!important;bottom:0!important;width:auto!important;max-height:56vh;z-index:16;border-radius:0!important;border:0!important;border-top:1px solid var(--line)!important;box-shadow:none!important;padding-bottom:env(safe-area-inset-bottom)}
-body.phoneUI.phTyping #detail{top:var(--vvTop,0px)!important;bottom:auto!important;height:var(--vvH,100vh);max-height:none;z-index:30;padding-bottom:0}
+body.phoneUI #index,body.phoneUI #detail,body.phoneUI #scene{position:fixed!important;left:var(--edge)!important;right:var(--edge)!important;top:auto!important;bottom:calc(var(--edge) + env(safe-area-inset-bottom))!important;width:auto!important;max-height:56vh;z-index:16}
+body.phoneUI.phTyping #detail{top:calc(var(--vvTop,0px) + var(--edge))!important;bottom:auto!important;height:calc(var(--vvH,100vh) - 2 * var(--edge));max-height:none;z-index:30}
 body.phoneUI #index,body.phoneUI #scene,body.phoneUI.phNoSel #detail{display:none!important}   /* (just the map, and a card's details when one is picked) */
 @media (orientation: landscape) {
-body.phoneUI #left{left:env(safe-area-inset-left)!important;right:auto!important;width:var(--phSide,50vw)!important;top:env(safe-area-inset-top)!important}
-body.phoneUI #right{left:auto!important;right:env(safe-area-inset-right)!important;align-items:stretch}
-body.phoneUI.narrow #topbar{width:calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right))!important}
-body.phoneUI #detail{left:0!important;right:auto!important;width:calc(var(--phSide,50vw) + env(safe-area-inset-left))!important;padding-left:env(safe-area-inset-left);top:var(--phTopH,44px)!important;max-height:none;border-top:0!important;border-right:1px solid var(--line)!important}
+body.phoneUI #left{left:calc(var(--edge) + max(0px, env(safe-area-inset-left) - 30px))!important;right:auto!important;width:var(--phSide,50vw)!important;top:calc(var(--edge) + env(safe-area-inset-top))!important}
+body.phoneUI #right{left:auto!important;right:calc(var(--edge) + env(safe-area-inset-right))!important;align-items:stretch}
+body.phoneUI.narrow #topbar{width:calc(100vw - 2 * var(--edge) - max(0px, env(safe-area-inset-left) - 30px) - env(safe-area-inset-right))!important}
+body.phoneUI.narrow #viewbar{background:transparent!important;box-shadow:none!important;border-color:transparent!important}
+body.phoneUI #detail{left:calc(var(--edge) + max(0px, env(safe-area-inset-left) - 30px))!important;right:auto!important;width:var(--phSide,50vw)!important;top:calc(var(--edge) * 2 + var(--h-topbar) + env(safe-area-inset-top))!important;max-height:none}
 }
-#phUL{position:fixed;z-index:60;right:8px;top:calc(var(--vvTop,0px) + var(--vvH,100vh) - 52px);min-width:44px;height:40px;font-size:18px;text-decoration:underline;display:none}
+#phUL{position:fixed;z-index:60;right:calc(var(--edge,4px) + 4px);top:calc(var(--vvTop,0px) + var(--vvH,100vh) - 52px);min-width:44px;height:40px;font-size:18px;text-decoration:underline;display:none}
 body.phoneUI.phTypingAny #phUL{display:inline-flex;align-items:center;justify-content:center}
 body.phoneUI #detail .p-foot .danger{margin-right:52px}   /* (the Delete buttons: clear of the U button) */
-body.phoneUI #ckBox{right:0;bottom:calc(env(safe-area-inset-bottom) + 72px);padding:6px calc(8px + env(safe-area-inset-right)) 6px 8px;border-radius:8px 0 0 8px!important;border-right:0!important}   /* (on the right-hand edge, clear of the screen's rounded corner) */
+body.phoneUI #ckBox{right:var(--edge);bottom:calc(var(--edge) + env(safe-area-inset-bottom) + 72px);padding:6px 8px}   /* (up the right-hand side, clear of the screen's rounded corner) */
 body.phoneUI #btnPane{display:none!important}`;
   function fitKeyboard() {   // the part of the screen not under the keyboard
     const v = window.visualViewport, r = document.documentElement.style;
@@ -1479,15 +1472,10 @@ body.phoneUI #btnPane{display:none!important}`;
         fit();
       } else rt.style.setProperty('right', Math.max(4, Math.round((innerWidth - vb.offsetWidth) / 2)) + 'px', 'important');   // upright: the view bar centred
     }
-    if (on) {   // the strip along the top: down to the bars' lower edge
-      const tb = document.getElementById('topbar');
-      const low = Math.max(tb ? tb.getBoundingClientRect().bottom : 0, vb ? vb.getBoundingClientRect().bottom : 0);
-      document.documentElement.style.setProperty('--phTopH', Math.ceil(low) + 'px');
-    }
     if (typeof updateBlurClip === 'function') updateBlurClip();
   }
   function safeSides() {   // the room the screen's rounded corners and notch take at the sides (on its side)
-    const p = document.createElement('div'); p.style.cssText = 'position:fixed;visibility:hidden;left:env(safe-area-inset-left);right:env(safe-area-inset-right);top:0;height:1px';
+    const p = document.createElement('div'); p.style.cssText = 'position:fixed;visibility:hidden;left:max(0px, env(safe-area-inset-left) - 30px);right:env(safe-area-inset-right);top:0;height:1px';
     document.body.appendChild(p); const r = p.getBoundingClientRect(), out = {l: r.left, r: innerWidth - r.right}; p.remove(); return out;
   }
   function phoneSel() {   // details only while something is picked
@@ -1527,7 +1515,6 @@ body.phoneUI #btnPane{display:none!important}`;
   function phoneSetup() {
     liteSetup();
     const st = document.createElement('style'); st.textContent = layoutCss; document.head.appendChild(st);
-    const top = document.createElement('div'); top.id = 'phTop'; top.className = 'panel'; document.body.appendChild(top);
     // Find (Ctrl+F or / on the laptop): first in the menu
     const menu = document.getElementById('menu'), fb = document.createElement('button');
     fb.className = 'btn'; fb.id = 'phFind'; fb.textContent = 'Find on the map…';
