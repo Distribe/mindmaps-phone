@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-0wKdZ6cr5avWCwkI0Fop+JCdXYXUuNx1CakXk6lqs5w=' 'sha256-oF2GEaPd/uHNG0L5cRlor0YKK8SSD+ho76xqSfdd0hI='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-j+1cIBXr3TD9K019rsz0TFtxivPYFHHl/oxEgQ24jJw=' 'sha256-HeaqGXDRfQ9lhz6UvyJPCd44p8XXQ17fuQ4GKpVNcno='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1067,7 +1067,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '20 (15 Nov 2026, 12:53)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '21 (15 Nov 2026, 12:58)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -1565,10 +1565,6 @@ body.phoneUI #btnPane{display:none!important}`;
       v.after(up);
     });
     wrap('renderPanel', () => { phoneSel(); if (typeof updateBlurClip === 'function') updateBlurClip(); });
-    // A new shoe box's space is sized as the laptop would size it (it fills the laptop's free screen there: about
-    // 1330 by 840), not to the phone's small screen, so the inside of a box made here is in the same proportion to
-    // the outside as one made there.
-    if (typeof window.spaceWidth === 'function') window.spaceWidth = ratio => { const pad = 40; return Math.max(400, Math.min(1331 - pad * 2, (840 - pad * 2) / ratio)); };
     const fr = window.freeRect;   // the free part of the screen: below the name bar too
     if (typeof fr === 'function') window.freeRect = function () {
       const r = fr.apply(this, arguments); if (!document.body.classList.contains('phoneUI')) return r;
@@ -2334,7 +2330,7 @@ function normalize(o) {
   s.tags = (Array.isArray(o.tags) ? o.tags : []).filter(t => t && t.name)
     .map((t, i) => ({name: String(t.name), color: old ? newTagColor(safeColor(t.color, TAG_COLORS[i % TAG_COLORS.length])) : safeColor(t.color, TAG_COLORS[i % TAG_COLORS.length]), ...(t.group ? {group: true} : {}), ...(t.auto ? {auto: true} : {}), ...(t.note ? {note: String(t.note)} : {})}));
   const normNodes = arr => (Array.isArray(arr) ? arr : []).filter(Boolean).map(n => ({
-    id: String(n.id || uid()), title: String(n.title ?? ''), summary: String(n.summary ?? ''), details: String(n.details ?? ''),
+    id: String(n.id || uid()), title: String(n.title ?? ''), summary: blankless(n.summary), details: blankless(n.details),
     color: old ? newCardColor(safeColor(n.color)) : safeColor(n.color), tags: Array.isArray(n.tags) ? [...new Set(n.tags.map(String))] : [],
     fields: n.fields && typeof n.fields === 'object' ? Object.fromEntries(Object.entries(n.fields).map(([k, v]) => [k, Array.isArray(v) ? v.map(x => String(x ?? '')) : String(v ?? '')])) : {},
     x: Number(n.x) || 0, y: Number(n.y) || 0,
@@ -2423,6 +2419,8 @@ function normSleeves(arr) {
       turns: Array.isArray(v.turns) ? v.turns.map(String) : (() => { const out = []; let k = 0; for (const n of (v.cols || []).slice(0, -1)) { k += Math.round(+n) || 1; if (slots[k - 1]) out.push(slots[k - 1][0]); } return out; })()};
   });
 }
+// A summary or notes that's only blank space (a phone's typing box can leave a lone line break behind) counts as none.
+function blankless(v) { v = String(v ?? ''); return v.trim() ? v : ''; }   // (a declaration: usable from the start)
 function normSketches(arr) {
   const num = v => Math.round(+v || 0), pt = q => Array.isArray(q) && q.length === 2 && q.every(v => isFinite(+v)) ? [num(q[0]), num(q[1])] : null;
   return (Array.isArray(arr) ? arr : []).filter(d => d && typeof d === 'object').map(d => {
@@ -2457,9 +2455,32 @@ function withRoutes(s) {
 // and links of the level around it, the card's place and scale, the camera there and a picture of that page.
 // Saving, undo and autosave always use fullState(), which first puts every level back into its card.
 const SPACE_W = 9 * 224 + 10 * 48;   // the width the space's header and border are designed at (they scale with the space)
-function spaceWidth(ratio) {   // a new space fills the free screen at 100%, in the card's proportions
-  const f = REF ? refFullRect() : freeRect(), pad = 40;
-  return Math.max(400, Math.min(f.w - pad * 2, (f.h - pad * 2) / ratio));
+// A box's space has one standard size, whatever the screen or window it's made on: the size that fills a laptop's
+// free screen at 100% (about 1330 by 840), in the card's proportions. So the inside of a box is always in the same
+// proportion to the outside (on the phone too).
+const SPACE_STD = {w: 1331, h: 840};
+function spaceWidth(ratio) {
+  const pad = 40;
+  return Math.max(400, Math.min(SPACE_STD.w - pad * 2, (SPACE_STD.h - pad * 2) / ratio));
+}
+// The space of a box as it's opened. One made well under the standard size (on a small screen, before there was a
+// standard) is brought up to it, its cards, lines and drawings spread out to match.
+function boxSpaceW(n, b) {
+  const std = spaceWidth(boxRatio(n, b)), w = n.inner.w;
+  if (!w) return std;
+  if (w < std * 0.6 && !REF && !SAT) {
+    const k = std / w, sc = v => Math.round(v * k), pt = q => Array.isArray(q) ? [sc(q[0]), sc(q[1])] : q;
+    for (const c of n.inner.nodes || []) { c.x = sc(c.x); c.y = sc(c.y); }
+    for (const l of n.inner.links || []) { if (l.via) l.via = {x: sc(l.via.x), y: sc(l.via.y)}; delete l.route; }
+    for (const d of n.inner.sketches || []) {
+      for (const f of ['x', 'y', 'w', 'h', 'ax', 'ay']) if (isFinite(+d[f]) && d[f] !== undefined) d[f] = sc(d[f]);
+      for (const f of ['a', 'm', 'b']) if (d[f]) d[f] = pt(d[f]);
+      if (Array.isArray(d.pts)) d.pts = d.pts.map(pt);
+    }
+    for (const v of n.inner.sleeves || []) { if (isFinite(+v.x)) v.x = sc(v.x); if (isFinite(+v.y)) v.y = sc(v.y); }
+    n.inner.w = Math.round(std); markDirty();
+  }
+  return n.inner.w;
 }
 // The draft above is only a strip of the window: a box opened there, not yet sized, is sized for the whole window
 // (the main map's free area), as it would be below.
@@ -2942,7 +2963,7 @@ function boxPic(id) {   // a picture of this page, without the card itself (the 
 // Straight into a box, with no lid or zoom (coming back to a tab you were inside it in): as if you'd gone in and stayed.
 function enterCardNow(id) {
   const n = getNode(id), b = cardBox(id); if (!n || !n.inner || !b || dimMode() !== '2') return false;
-  const pic = boxPic(id), w = n.inner.w || spaceWidth(boxRatio(n, b)), k = b.w / w;
+  const w = boxSpaceW(n, b), pic = boxPic(id), k = b.w / w;
   inside.push({id, nodes: state.nodes, links: state.links, sketches: state.sketches, view: {...view}, k, w, ox: b.x, oy: b.y, ratio: boxRatio(n, b), pic, sel: null});
   state.nodes = n.inner.nodes; state.links = n.inner.links; state.sketches = n.inner.sketches || (n.inner.sketches = []);
   selected = null; tagPane = null; panelMode = 'read'; labelPos.clear();
@@ -2962,9 +2983,9 @@ function enterCard(id) {
   const n = getNode(id), b = cardBox(id); if (!n || !n.inner || !b) return;
   if (dimMode() !== '2') { toast('Switch to the 2D view to go inside a card.'); return; }
   closeSpatial(false); endCardEdit(); clearMulti(); fadeOutMinimap();
+  const w = boxSpaceW(n, b), k = b.w / w;   // the standard size (see spaceWidth); once anything is in it, that size is its own (see keepBoxSize)
   const pic = boxPic(id);
   const liveCard = cardsEl.querySelector(`.card[data-id="${CSS.escape(id)}"]`);
-  const w = n.inner.w || spaceWidth(boxRatio(n, b)), k = b.w / w;   // an empty box is sized to the window as it's opened; once anything is in it, that size is its own (see keepBoxSize)
   if (n.inner.nodes.length || (n.inner.sketches || []).length) keepBoxSize(n, w);
   inside.push({id, nodes: state.nodes, links: state.links, sketches: state.sketches, view: {...view}, k, w, ox: b.x, oy: b.y, ratio: boxRatio(n, b), pic, sel: selected});
   state.nodes = n.inner.nodes; state.links = n.inner.links; state.sketches = n.inner.sketches || (n.inner.sketches = []);
@@ -6274,7 +6295,7 @@ detail.addEventListener('input', e => {
     changed('panel');
   } else if (t.dataset.k) {
     pushUndo('ed:' + n.id + t.dataset.k);
-    n[t.dataset.k] = t.dataset.k === 'title' ? t.value.replace(/\n/g, ' ') : t.value;   // only the title is one line; the summary and notes keep their line breaks
+    n[t.dataset.k] = t.dataset.k === 'title' ? t.value.replace(/\n/g, ' ') : blankless(t.value);   // only the title is one line; the summary and notes keep their line breaks
     if (t.tagName === 'TEXTAREA') grow(t);
     changed('panel');
   } else if (t.dataset.field) {
@@ -6481,7 +6502,7 @@ $('#table tbody').addEventListener('input', e => {
   const inp = e.target.closest('.cell'); if (!inp) return;
   const n = getNode(inp.closest('tr').dataset.id), k = inp.dataset.k;
   pushUndo('cell:' + n.id + k);
-  if (k.startsWith('f:')) n.fields[k.slice(2)] = inp.value; else n[k] = k === 'summary' ? sumText(inp).replace(/\u200b/g, '') : inp.value;   // each ↵ is a line break
+  if (k.startsWith('f:')) n.fields[k.slice(2)] = inp.value; else n[k] = k === 'summary' ? blankless(sumText(inp).replace(/\u200b/g, '')) : inp.value;   // each ↵ is a line break
   changed('table');
 });
 $('#table tbody').addEventListener('click', e => {
@@ -10187,7 +10208,7 @@ function endCardEdit() { if (!cardEdit) return; cardEdit = null; renderMap(); }
 cardsEl.addEventListener('input', e => {
   const el = e.target.closest('[data-ck]'), n = cardEdit && getNode(cardEdit); if (!el || !n) return;
   pushUndo('ced:' + n.id + el.dataset.ck);
-  n[el.dataset.ck] = el.dataset.ck === 'title' ? el.textContent.replace(/\n/g, ' ') : el.innerText.replace(/\n$/, '');   // the summary keeps its line breaks
+  n[el.dataset.ck] = el.dataset.ck === 'title' ? el.textContent.replace(/\n/g, ' ') : blankless(el.innerText.replace(/\n$/, ''));   // the summary keeps its line breaks
   markDirty(); renderLinks(); renderIndex(); renderPanel();
 });
 cardsEl.addEventListener('keydown', e => {
