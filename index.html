@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Y5ETKEbDkZG9PQOhGmA9ISgJKHYKAt5JqNas1jpwYks=' 'sha256-aBbWhvwwBXAc+9g1TxVLDpClwQ6RxTofxrMDgime6Q4='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-ZOdrbRVQmYOCeS8ls3G7awNen0bG9gtJF3/rGPfSsMM=' 'sha256-b/h+GDSTnv94I8BJWh8kp29mSXNDlya51dG5R/gbYXM='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -323,6 +323,11 @@ body.refOn{--top0:calc(var(--app-top) + var(--ref-h,0px) + var(--refbar-h))}
 #status{display:inline-flex;align-items:center;gap:6px;font-size:var(--t-small);color:var(--muted);padding:0 6px;white-space:nowrap;cursor:default;flex:none}
 #status::before{content:"";width:8px;height:8px;border-radius:50%;background:#5fb57e}
 #status.unsaved::before{background:#e0a940}
+#peer{display:inline-flex;align-items:center;gap:5px;font-size:var(--t-small);color:var(--muted);padding:0 4px;white-space:nowrap;cursor:default;flex:none}
+#peer[hidden]{display:none}
+#peer::before{content:"";width:7px;height:7px;border-radius:50%;border:1.5px solid currentColor;box-sizing:border-box}
+#peer.live{color:#3f9a63}
+#peer.live::before{background:currentColor}
 #zoomLabel:focus{outline:none;cursor:text}
 #zoomLabel{min-width:42px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--muted)}
 .menuwrap{position:relative;flex:none}
@@ -869,6 +874,7 @@ body.drop7 #mapName{min-width:60px}
     <div id="draftWrap"><button id="btnDraft" class="btn" title="Drafts of this map: switch, start a new draft, or show an earlier one above"><span class="lbl">First draft</span><svg class="chev" viewBox="0 0 16 16"><path d="m4.5 6.5 3.5 3.5 3.5-3.5"/></svg></button>
       <div id="draftMenu" class="panel"></div></div>
     <span id="status"></span>
+    <span id="peer" hidden></span>
     <div class="sep"></div>
     <button id="btnUndo" class="btn icon" title="Undo (Ctrl+Z)"><svg viewBox="0 0 16 16"><path d="M5.5 3.5 2.5 6.5l3 3"/><path d="M2.5 6.5h7a4 4 0 0 1 0 8h-2"/></svg></button>
     <button id="btnRedo" class="btn icon" title="Redo (Ctrl+Y)"><svg viewBox="0 0 16 16"><path d="m10.5 3.5 3 3-3 3"/><path d="M13.5 6.5h-7a4 4 0 0 0 0 8h2"/></svg></button>
@@ -1061,7 +1067,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '8 (14 Nov 2026, 23:49)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '9 (15 Nov 2026, 00:11)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -1156,84 +1162,52 @@ body.drop7 #mapName{min-width:60px}
     return (await r.json()).content.sha;
   }
 
-  /* ---------- merging two edited copies, card by card (the same rules as Phone\mapmerge.py) ---------- */
-  // base: the version both sides last had; mine: the phone's; theirs: the laptop's. What only one side changed is
-  // taken from that side (different cards, or different parts of a card, combine; a card's tags combine). Where both
-  // changed the same words on a card, the phone's card stays and the laptop's is added beside it as a copy,
-  // "(laptop version)"; anything else that clashes (a position, the view) keeps the phone's.
-  const GONE = Symbol('gone'), WORDS = new Set(['title', 'summary', 'details', 'fields', 'tags']);
-  const same = (a, b) => {
-    if (a === b) return true;
-    if (typeof a !== 'object' || typeof b !== 'object' || !a || !b || Array.isArray(a) !== Array.isArray(b)) return false;
-    if (Array.isArray(a)) return a.length === b.length && a.every((x, i) => same(x, b[i]));
-    const ka = Object.keys(a), kb = Object.keys(b);
-    return ka.length === kb.length && ka.every(k => Object.prototype.hasOwnProperty.call(b, k) && same(a[k], b[k]));
-  };
-  const plainObj = x => x && typeof x === 'object' && !Array.isArray(x);
-  const keyOf = xs => { if (!xs.length || !xs.every(plainObj)) return null; for (const k of ['id', 'name']) if (xs.every(x => typeof x[k] === 'string')) return k; return null; };
-  function merge3(base, mine, theirs, label) {
-    let copies = 0, found = null;
-    const copyOf = card => { const c = JSON.parse(JSON.stringify(card)); c.id = Math.random().toString(36).slice(2, 12); c.title = (c.title || 'Untitled') + ` (${label} version)`;
-      for (const k of ['x', 'y']) if (typeof c[k] === 'number') c[k] += 40; for (const k of ['d3', 's2', 't2', 's2f', 'on', 'onT', 'onR']) delete c[k]; copies++; return c; };
-    const value = (b, m, t, path) => {
-      if (same(m, t)) return m; if (same(m, b)) return t; if (same(t, b)) return m;
-      if (plainObj(m) && plainObj(t)) {
-        const bb = plainObj(b) ? b : {}, out = {};
-        for (const k of [...Object.keys(m), ...Object.keys(t).filter(k => !(k in m))]) {
-          const r = value(k in bb ? bb[k] : GONE, k in m ? m[k] : GONE, k in t ? t[k] : GONE, [...path, k]);
-          if (r !== GONE) out[k] = r;
-        }
-        return out;
-      }
-      if (Array.isArray(m) && Array.isArray(t)) {
-        const bl = Array.isArray(b) ? b : [], key = keyOf([...m, ...t, ...bl]);
-        if (key) return keyed(bl, m, t, key, path);
-        if ([...m, ...t, ...bl].every(x => typeof x !== 'object' || x === null)) {   // words: combine
-          const out = m.filter(x => t.includes(x) || !bl.includes(x));
-          for (const x of t) if (!bl.includes(x) && !out.includes(x)) out.push(x);
-          return out;
-        }
-      }
-      if (m === GONE || t === GONE) return m === GONE ? t : m;   // (deleted on one side, changed on the other: kept)
-      if (found && path.slice(-3).some(p => WORDS.has(p))) found.push(path);
-      return m;
-    };
-    const keyed = (b, m, t, key, path) => {
-      const bi = new Map(b.map(x => [x[key], x])), mi = new Map(m.map(x => [x[key], x])), ti = new Map(t.map(x => [x[key], x]));
-      const out = [], extra = [];
-      for (const k of [...m.map(x => x[key]), ...t.map(x => x[key]).filter(k => !mi.has(k))]) {
-        const bx = bi.has(k) ? bi.get(k) : GONE, mx = mi.has(k) ? mi.get(k) : GONE, tx = ti.has(k) ? ti.get(k) : GONE;
-        if (mx === GONE || tx === GONE) { const here = mx === GONE ? tx : mx; if (bx === GONE || !same(here, bx)) out.push(here); continue; }
-        if (path[path.length - 1] === 'nodes') {   // a card: part by part; a clash in its words keeps theirs as a copy
-          const was = found; found = [];
-          const r = value(bx, mx, tx, [...path, k]); const f = found; found = was;
-          out.push(r); if (f.length) extra.push(copyOf(tx));
-        } else { const r = value(bx, mx, tx, [...path, k]); if (r !== GONE) out.push(r); }
-      }
-      return [...out, ...extra];
-    };
-    return {map: value(base, mine, theirs, []), copies};
-  }
-  P.merge3 = merge3;
 
-  /* ---------- saving the open map ---------- */
+  /* ---------- saving the open map, and taking in the laptop's changes ---------- */
+  // cur: the map open here, as GitHub had it when last read or saved (path, sha, and its text: base). When the laptop
+  // has changed it meanwhile, its version is merged into what's on screen card by card (takeIn, in the main page),
+  // unsaved phone changes and all, and the merged map is saved.
   const stillOpen = () => cur && fileName === cur.name;   // (the map shown is still the one from GitHub: not replaced by something else)
+  const rel = () => cur ? cur.path.slice(cfg.dir.length + 1) : '';   // (the map's name in the library, as the laptop calls it)
   P.saveSoon = () => { if (!stillOpen()) return; clearTimeout(saveT); saveT = setTimeout(() => P.saveNow(true), 2500); };
+  // The laptop's version (sha, text) taken into the map on screen. false: not just now (mid-drag or typing: tried again soon).
+  function takeLaptop(mine, sha, text) {
+    if (cur !== mine || !stillOpen()) return false;
+    const r = takeIn(mine.base, text, 'laptop');
+    if (!r) return false;
+    if (r.error) return r;
+    mine.sha = sha; mine.base = text;
+    if (r.same) { dirty = false; renderHeader(); } else { dirty = true; renderHeader(); P.saveSoon(); }
+    return r;
+  }
+  async function latest(mine) {   // the map as GitHub has it now: {sha, text}
+    const m = (await listMaps()).find(x => x.path === mine.path);
+    if (!m) throw new Error('It’s no longer in the repo.');
+    return {sha: m.sha, text: m.sha === mine.sha ? mine.base : await readBlob(m.sha)};
+  }
   P.saveNow = async quiet => {
     clearTimeout(saveT);
     if (!stillOpen()) { if (!quiet) toast('Open a map from your list first (menu → Your maps).'); return; }
     if (saving) { again = true; return saving; }
-    const seq = editSeq, text = JSON.stringify(serialize(), null, 2), mine = cur;
+    const seq = editSeq, mine = cur;
+    let text = JSON.stringify(serialize(), null, 2);
     saving = (async () => {
       try {
         let sha = await putFile(mine.path, text, mine.sha, 'Phone: ' + mine.name);
-        if (sha === 'conflict') {
-          const keep = confirm(`“${mine.name}” was changed somewhere else since you opened it (probably by the laptop sync).\n\nOK: save your phone edits over it (the other version stays in the repo's history).\nCancel: don't save; reopen the map to see the newer version.`);
-          if (!keep) { toast('Not saved. Reopen the map from your list to get the newer version.'); return; }
-          sha = await putFile(mine.path, text, await shaNow(mine.path), 'Phone: ' + mine.name);
-          if (sha === 'conflict') throw new Error('It changed again while saving. Try again.');
+        if (sha === 'conflict') {   // the laptop changed it since: its changes merged in first
+          const now = await latest(mine), r = takeLaptop(mine, now.sha, now.text);
+          if (!r) { again = true; return; }   // (in a moment)
+          if (r.error) {
+            const keep = confirm(`“${mine.name}” was changed on the laptop too, and the two couldn’t be merged (${r.error}).\n\nOK: save your phone version over it (the laptop's stays in the repo's history).\nCancel: don't save; reopen the map to see the laptop's version.`);
+            if (!keep) { toast('Not saved. Reopen the map from your list to get the laptop’s version.'); return; }
+            sha = await putFile(mine.path, text, now.sha, 'Phone: ' + mine.name);
+          } else {
+            if (r.same) { clearTimeout(retryT); return; }   // (nothing of the phone's left to save)
+            text = r.text; sha = await putFile(mine.path, text, now.sha, 'Phone: ' + mine.name + ' (merged)');
+          }
+          if (sha === 'conflict') { again = true; return; }   // (changed yet again: once more in a moment)
         }
-        if (cur === mine) { mine.sha = sha; if (editSeq === seq) { dirty = false; renderHeader(); } }
+        if (cur === mine) { mine.sha = sha; mine.base = text; if (editSeq === seq) { dirty = false; renderHeader(); } }
         clearTimeout(retryT);
         if (!quiet) toast('Saved to GitHub.');
       } catch (e) {
@@ -1247,9 +1221,68 @@ body.drop7 #mapName{min-width:60px}
     })();
     return saving;
   };
+
+  /* ---------- who has what open (a small note each side keeps on its own branch), and checking for changes ---------- */
+  // The phone's note (presence-phone): which map is open here and whether you're using it. The laptop's (presence-
+  // laptop) says the same of the laptop. How often this checks for the laptop's changes: every 5 s while you both
+  // work on the same map, every 30 s while the laptop's open, every 2 minutes when it's closed.
+  let peer = null, refs = {}, pollT = 0, pollOn = false, noteSent = '', noteAt = 0;
+  const usingIt = () => Date.now() - lastInputAt < 120000;
+  const peerOpen = () => !!(peer && peer.state !== 'closed' && Math.abs(Date.now() / 1000 - peer.at) < 300);
+  const every = () => !peerOpen() ? 120000 : peer.state === 'active' && cur && peer.map === rel() && usingIt() ? 5000 : 30000;
+  async function readNote(branch) {
+    const r = await gh('/contents/presence.json?ref=' + encodeURIComponent(branch));
+    if (!r.ok) return null;
+    try { const j = JSON.parse(dec.decode(unb64((await r.json()).content)));
+      return {map: String(j.map || '').slice(0, 300), state: ['active', 'idle', 'closed'].includes(j.state) ? j.state : 'closed', at: +j.at || 0}; } catch (e) { return null; }
+  }
+  async function writeNote(state) {   // a fresh one-commit branch each time (it never grows)
+    const note = {who: 'phone', map: state === 'closed' ? '' : rel(), state};
+    const key = JSON.stringify(note);
+    if (key === noteSent && Date.now() - noteAt < 110000) return;
+    note.at = Math.round(Date.now() / 1000);
+    const tr = await gh('/git/trees', {method: 'POST', body: JSON.stringify({tree: [{path: 'presence.json', mode: '100644', type: 'blob', content: JSON.stringify(note)}]})});
+    if (!tr.ok) return;
+    const cm = await gh('/git/commits', {method: 'POST', body: JSON.stringify({message: 'presence', tree: (await tr.json()).sha, parents: []})});
+    if (!cm.ok) return;
+    const sha = (await cm.json()).sha;
+    let r = await gh('/git/refs/heads/presence-phone', {method: 'PATCH', body: JSON.stringify({sha, force: true})});
+    if (!r.ok) r = await gh('/git/refs', {method: 'POST', body: JSON.stringify({ref: 'refs/heads/presence-phone', sha})});
+    if (r.ok) { noteSent = key; noteAt = Date.now(); }
+  }
+  async function poll() {
+    clearTimeout(pollT);
+    try {
+      if (token && cfg && !document.hidden) {
+        const r = await gh('/git/matching-refs/heads/');
+        if (r.ok) {
+          const heads = {};
+          for (const x of await r.json()) if (x && x.ref && x.object) heads[x.ref.replace(/^refs\/heads\//, '')] = x.object.sha;
+          if (!heads['presence-laptop']) peer = null;
+          else if (heads['presence-laptop'] !== refs['presence-laptop']) { peer = await readNote('presence-laptop'); if (!peer) delete heads['presence-laptop']; }
+          const mine = cur;
+          if (mine && stillOpen() && heads[cfg.branch] !== refs[cfg.branch]) {   // something went up: the laptop's changes to this map?
+            let done = !!saving;
+            if (!saving) {
+              const now = await latest(mine);
+              done = now.sha === mine.sha || !!takeLaptop(mine, now.sha, now.text);
+            }
+            if (!done) delete heads[cfg.branch];   // (not just now: next time)
+          }
+          refs = heads;
+        }
+        showPeer(peer, 'Laptop', rel());
+        await writeNote(cur && stillOpen() ? (usingIt() ? 'active' : 'idle') : 'idle');
+      }
+    } catch (e) { /* (no connection: next time) */ }
+    pollT = setTimeout(poll, every());
+  }
+  const startPoll = () => { if (!pollOn) { pollOn = true; poll(); } };
+  addEventListener('pointerdown', () => { if (pollOn && cur && noteSent.includes('"idle"')) { noteSent = 'x'; clearTimeout(pollT); pollT = setTimeout(poll, 800); } }, {passive: true});   // (back in use after a while: say so soon)
   addEventListener('beforeunload', e => { if (stillOpen() && dirty) { P.saveNow(true); e.preventDefault(); e.returnValue = ''; } });
   document.addEventListener('visibilitychange', () => {   // put away: saved at once; away a long time: locked again
-    if (document.hidden) { hiddenAt = Date.now(); if (stillOpen() && dirty) P.saveNow(true); return; }
+    if (document.hidden) { hiddenAt = Date.now(); if (stillOpen() && dirty) P.saveNow(true); if (pollOn) { clearTimeout(pollT); noteSent = ''; writeNote('closed').catch(() => {}); } return; }
+    if (pollOn) { clearTimeout(pollT); pollT = setTimeout(poll, 300); }
     if (token && cfg && !cfg.dev && hiddenAt && Date.now() - hiddenAt > 15 * 60000 && !dirty) location.reload();
   });
 
@@ -1361,7 +1394,7 @@ body.drop7 #mapName{min-width:60px}
         const text = await readBlob(m.sha);
         cur = null; loadText(text, null, m.name);
         if (fileName === m.name) {
-          cur = {path: m.path, sha: m.sha, name: m.name}; dirty = false; renderHeader(); close();
+          cur = {path: m.path, sha: m.sha, name: m.name, base: text}; dirty = false; renderHeader(); close(); startPoll();
           try { localStorage.setItem(LAST_KEY, m.path); } catch (x) {}
           if (phoneSize() && typeof fit === 'function') setTimeout(() => {   // the whole map on the small screen (a big one: its busiest part, readable)
             fit(); if (view.s < 0.45 && typeof openView === 'function') { openView(); zoomAt(innerWidth / 2, innerHeight / 2, 0.65 / view.s); }
@@ -9087,6 +9120,108 @@ function portalApply(I) {   // into the map on screen
   renderTabs(); renderDraftMenu();
 }
 if (portalBC) portalBC.onmessage = e => { const m = e.data; if (inApp() && m && m.win !== WIN_ID && m.file) portalTake(m.file, m.text); };
+
+/* ---------- the other device (the phone, or the laptop): who has what open, and its changes merged in ---------- */
+// The sync (Mind Map.pyw on the laptop, phone.js on the phone) checks for the other side's changes often while you
+// both work on the same map, and rarely when the other side is idle or closed. It needs to know whether you're
+// using this window: lastInputAt.
+let lastInputAt = Date.now();
+for (const ev of ['pointerdown', 'keydown', 'wheel']) addEventListener(ev, () => { lastInputAt = Date.now(); }, {capture: true, passive: true});
+// Merging two edited copies of a map, card by card (the same rules as Phone/mapmerge.py).
+const merge3 = (() => {
+  // base: the version both sides last had; mine: this side's (the map on screen); theirs: the other side's. What only one side changed is
+  // taken from that side (different cards, or different parts of a card, combine; a card's tags combine). Where both
+  // changed the same words on a card, this side's card stays and the other side's is added beside it as a copy,
+  // "(phone version)" or "(laptop version)"; anything else that clashes (a position, the view) keeps this side's.
+  const GONE = Symbol('gone'), WORDS = new Set(['title', 'summary', 'details', 'fields', 'tags']);
+  const same = (a, b) => {
+    if (a === b) return true;
+    if (typeof a !== 'object' || typeof b !== 'object' || !a || !b || Array.isArray(a) !== Array.isArray(b)) return false;
+    if (Array.isArray(a)) return a.length === b.length && a.every((x, i) => same(x, b[i]));
+    const ka = Object.keys(a), kb = Object.keys(b);
+    return ka.length === kb.length && ka.every(k => Object.prototype.hasOwnProperty.call(b, k) && same(a[k], b[k]));
+  };
+  const plainObj = x => x && typeof x === 'object' && !Array.isArray(x);
+  const keyOf = xs => { if (!xs.length || !xs.every(plainObj)) return null; for (const k of ['id', 'name']) if (xs.every(x => typeof x[k] === 'string')) return k; return null; };
+  function merge3(base, mine, theirs, label) {
+    let copies = 0, found = null;
+    const copyOf = card => { const c = JSON.parse(JSON.stringify(card)); c.id = Math.random().toString(36).slice(2, 12); c.title = (c.title || 'Untitled') + ` (${label} version)`;
+      for (const k of ['x', 'y']) if (typeof c[k] === 'number') c[k] += 40; for (const k of ['d3', 's2', 't2', 's2f', 'on', 'onT', 'onR']) delete c[k]; copies++; return c; };
+    const value = (b, m, t, path) => {
+      if (same(m, t)) return m; if (same(m, b)) return t; if (same(t, b)) return m;
+      if (plainObj(m) && plainObj(t)) {
+        const bb = plainObj(b) ? b : {}, out = {};
+        for (const k of [...Object.keys(m), ...Object.keys(t).filter(k => !(k in m))]) {
+          const r = value(k in bb ? bb[k] : GONE, k in m ? m[k] : GONE, k in t ? t[k] : GONE, [...path, k]);
+          if (r !== GONE) out[k] = r;
+        }
+        return out;
+      }
+      if (Array.isArray(m) && Array.isArray(t)) {
+        const bl = Array.isArray(b) ? b : [], key = keyOf([...m, ...t, ...bl]);
+        if (key) return keyed(bl, m, t, key, path);
+        if ([...m, ...t, ...bl].every(x => typeof x !== 'object' || x === null)) {   // words: combine
+          const out = m.filter(x => t.includes(x) || !bl.includes(x));
+          for (const x of t) if (!bl.includes(x) && !out.includes(x)) out.push(x);
+          return out;
+        }
+      }
+      if (m === GONE || t === GONE) return m === GONE ? t : m;   // (deleted on one side, changed on the other: kept)
+      if (found && path.slice(-3).some(p => WORDS.has(p))) found.push(path);
+      return m;
+    };
+    const keyed = (b, m, t, key, path) => {
+      const bi = new Map(b.map(x => [x[key], x])), mi = new Map(m.map(x => [x[key], x])), ti = new Map(t.map(x => [x[key], x]));
+      const out = [], extra = [];
+      for (const k of [...m.map(x => x[key]), ...t.map(x => x[key]).filter(k => !mi.has(k))]) {
+        const bx = bi.has(k) ? bi.get(k) : GONE, mx = mi.has(k) ? mi.get(k) : GONE, tx = ti.has(k) ? ti.get(k) : GONE;
+        if (mx === GONE || tx === GONE) { const here = mx === GONE ? tx : mx; if (bx === GONE || !same(here, bx)) out.push(here); continue; }
+        if (path[path.length - 1] === 'nodes') {   // a card: part by part; a clash in its words keeps theirs as a copy
+          const was = found; found = [];
+          const r = value(bx, mx, tx, [...path, k]); const f = found; found = was;
+          out.push(r); if (f.length) extra.push(copyOf(tx));
+        } else { const r = value(bx, mx, tx, [...path, k]); if (r !== GONE) out.push(r); }
+      }
+      return [...out, ...extra];
+    };
+    return {map: value(base, mine, theirs, []), copies};
+  }
+  merge3.same = same;   // (are two maps the same)
+  return merge3;
+})();
+const typingNow = () => { const a = document.activeElement; return !!(a && a !== document.body && a.matches && a.matches('input, textarea, select, [contenteditable]:not([contenteditable="false"])')); };
+// The other side's version of the map on screen (theirsText), taken in: merged with this one, unsaved changes and
+// all, against the version both last had (baseText), and shown, where you are kept (an undo step goes back to
+// before it). null: not now (mid-drag, or typing: asked again shortly). {error}: can't be merged (left to the sync).
+// Otherwise {text: the merged map as it's saved, copies: cards changed on both sides, same: it's just theirs}.
+function takeIn(baseText, theirsText, label) {
+  if (drag || cardEdit || tabBusy || diveBusy() || spatial || typingNow()) return null;
+  let base, theirs; try { base = JSON.parse(baseText); theirs = JSON.parse(theirsText); } catch (e) { return {error: 'not readable'}; }
+  if (!base || !theirs || !Array.isArray(theirs.nodes) || !Array.isArray(base.nodes)) return {error: 'not readable'};
+  const L = serialize(), d = L.draft || '';
+  if ((theirs.draft || '') !== d || (base.draft || '') !== d) return {error: 'on another draft'};
+  const {map: M, copies} = merge3(base, L, theirs, label);
+  pushUndo();
+  if (Array.isArray(M.drafts)) project.drafts = M.drafts.map(x => x.id === project.cur ? {id: x.id, name: x.name, created: x.created} : {...x});
+  const top = {...state, ...normalize({...M, name: M.name}), settings: state.settings};
+  for (const k of ['id', 'version']) top[k] = state[k];
+  restore(JSON.stringify({...top, _path: inside.map(e => e.id)}), true);
+  renderHeader(); renderTabs(); renderDraftMenu();
+  if (copies) toast(`Changes from the ${label} merged in. ${copies === 1 ? 'A card was' : copies + ' cards were'} changed on both: the ${label}’s ${copies === 1 ? 'version is' : 'versions are'} beside ${copies === 1 ? 'it' : 'them'}, marked “(${label} version)”.`);
+  const text = JSON.stringify(serialize(), null, 2);
+  return {text, copies, same: merge3.same(M, theirs)};
+}
+// What the other side has open, shown by the Saved light: "Phone: here" while it's working on this same map.
+// note: {map, state: 'active'|'idle'|'closed', at (seconds)}; who: 'Phone' or 'Laptop'; here: this map's file.
+function showPeer(note, who, here) {
+  const el = $('#peer'); if (!el) return;
+  const open = !!(note && note.state !== 'closed' && Math.abs(Date.now() / 1000 - (+note.at || 0)) < 300);
+  const same = open && !!here && note.map === here, live = same && note.state === 'active';
+  el.hidden = !open; el.classList.toggle('live', live);
+  el.textContent = `${who}: ${same ? 'here' : 'open'}`;
+  el.title = !open ? '' : `The ${who.toLowerCase()} has ${same ? 'this map' : note.map ? '“' + String(note.map).replace(/\.mindmap\.json$/, '') + '”' : 'the Mind Map'} open${note.state === 'active' ? ', in use' : ', not in use just now'}. ` +
+    (live ? 'Changes go back and forth every few seconds.' : 'Changes go back and forth less often until you both work on the same map.');
+}
 function tabsBackup() {   // for the app's own backup: every tab (the ones safely in the library just by name)
   if (!inApp() || tabs.length < 2) return {};
   return {tabs: tabs.map(t => t.id === tabCur ? {cur: true, pg: t.pg || '', fileName: fileName || ''} : {fileName: t.fileName || '', dirty: !!t.dirty, name: t.name || '', draft: t.draft || '', draftName: t.draftName || '', pg: t.pg || '', text: t.dirty || !t.fileName ? t.text : null})};
