@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-aqQ29c8Gq8egXZWtjwqlyJ6HsyARDB886xapNgxQU40=' 'sha256-oF2GEaPd/uHNG0L5cRlor0YKK8SSD+ho76xqSfdd0hI='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-5Zes5cDrC5RJShBFeNeLcHwu1dC6JYNSMYHocTohTj0=' 'sha256-oF2GEaPd/uHNG0L5cRlor0YKK8SSD+ho76xqSfdd0hI='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1067,7 +1067,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '18 (15 Nov 2026, 01:48)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '19 (15 Nov 2026, 01:49)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -1431,7 +1431,7 @@ body.phoneUI #left{left:calc(var(--edge) + var(--padL, env(safe-area-inset-left)
 body.phoneUI #right{left:auto!important;right:calc(var(--edge) + var(--padR, env(safe-area-inset-right)) + var(--cornerR, 0px))!important;align-items:stretch}
 body.phoneUI #topbar{margin-left:var(--cornerL, 0px)}
 body.phoneUI.narrow #topbar{width:calc(100vw - 2 * var(--edge) - var(--padL, env(safe-area-inset-left)) - var(--padR, env(safe-area-inset-right)) - var(--cornerL, 0px) - var(--cornerR, 0px))!important}
-body.phoneUI #ckBox{right:calc(var(--edge) + var(--padR, env(safe-area-inset-right)));bottom:calc(var(--edge) + env(safe-area-inset-bottom) + 72px)}
+html body.phoneUI #ckBox{right:calc(var(--edge) + var(--padR, env(safe-area-inset-right)));bottom:calc(var(--edge) + env(safe-area-inset-bottom) + 72px)}
 body.phoneUI.narrow #viewbar{background:transparent!important;box-shadow:none!important;border-color:transparent!important}
 body.phoneUI #detail{left:calc(var(--edge) + var(--padL, env(safe-area-inset-left)))!important;right:auto!important;width:var(--phSide,50vw)!important;top:calc(var(--edge) * 2 + var(--h-topbar) + env(safe-area-inset-top))!important;max-height:none}
 }
