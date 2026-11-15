@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-5Zes5cDrC5RJShBFeNeLcHwu1dC6JYNSMYHocTohTj0=' 'sha256-oF2GEaPd/uHNG0L5cRlor0YKK8SSD+ho76xqSfdd0hI='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-0wKdZ6cr5avWCwkI0Fop+JCdXYXUuNx1CakXk6lqs5w=' 'sha256-oF2GEaPd/uHNG0L5cRlor0YKK8SSD+ho76xqSfdd0hI='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1067,7 +1067,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '19 (15 Nov 2026, 01:49)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '20 (15 Nov 2026, 12:53)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -1511,7 +1511,17 @@ body.phoneUI #btnPane{display:none!important}`;
 .card.selected{outline:2px solid var(--accent);outline-offset:0}
 #world{will-change:transform}
 #groups [filter]{filter:none!important}
-#groups g[filter*=gf]{opacity:.45}`;   /* (group areas: plain shading, no soft blurred edge, which is slow for a phone to draw as the map slides into view) */   /* (the map is kept ready as one picture, so a drag only slides it: see liteSetup) */
+#groups g[filter*=gf]{opacity:.45}
+.card:not(.selected) .handle,.card:not(.selected) .wgrip{pointer-events:none}
+.card.selected .handle{transform:scale(var(--hs,1))}
+.handle::before{content:'';position:absolute;left:50%;top:50%;width:var(--hit,44px);height:var(--hit,44px);transform:translate(-50%,-50%);border-radius:50%}`;
+  // (A card's connection handle, for a finger: it and the width edge beside it only answer on the card picked (so a
+  // drag near other cards moves the map); its touch area is about a fingertip on the screen however far out you've
+  // zoomed, and the dot grows a little when zoomed out (see touchSizes).)   /* (group areas: plain shading, no soft blurred edge, which is slow for a phone to draw as the map slides into view) */   /* (the map is kept ready as one picture, so a drag only slides it: see liteSetup) */
+  function touchSizes(w) {   // (set once a zoom has settled, not while it moves: changing these restyles the whole map)
+    const hs = Math.max(1, 1.25 / view.s);
+    w.style.setProperty('--hs', hs.toFixed(2)); w.style.setProperty('--hit', (44 / view.s / hs).toFixed(1) + 'px');
+  }
   function liteSetup() {
     const st = document.createElement('style'); st.textContent = liteCss; document.head.appendChild(st);
     for (const f of ['syncBlur', 'applyBlurView', 'updateBlurClip', 'renderMinimap']) if (typeof window[f] === 'function') window[f] = () => {};
@@ -1526,6 +1536,7 @@ body.phoneUI #btnPane{display:none!important}`;
         if (pts.size) { sLast = 0; return; }   // (still pinching: wait)
         const w = document.getElementById('world'); if (!w) return;
         w.style.willChange = 'auto'; requestAnimationFrame(() => { w.style.willChange = ''; });
+        touchSizes(w);
       }, 250); }
       return r;
     };
@@ -1554,6 +1565,10 @@ body.phoneUI #btnPane{display:none!important}`;
       v.after(up);
     });
     wrap('renderPanel', () => { phoneSel(); if (typeof updateBlurClip === 'function') updateBlurClip(); });
+    // A new shoe box's space is sized as the laptop would size it (it fills the laptop's free screen there: about
+    // 1330 by 840), not to the phone's small screen, so the inside of a box made here is in the same proportion to
+    // the outside as one made there.
+    if (typeof window.spaceWidth === 'function') window.spaceWidth = ratio => { const pad = 40; return Math.max(400, Math.min(1331 - pad * 2, (840 - pad * 2) / ratio)); };
     const fr = window.freeRect;   // the free part of the screen: below the name bar too
     if (typeof fr === 'function') window.freeRect = function () {
       const r = fr.apply(this, arguments); if (!document.body.classList.contains('phoneUI')) return r;
