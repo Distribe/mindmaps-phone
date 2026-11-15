@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-ZOdrbRVQmYOCeS8ls3G7awNen0bG9gtJF3/rGPfSsMM=' 'sha256-b/h+GDSTnv94I8BJWh8kp29mSXNDlya51dG5R/gbYXM='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-qwlYAW3FOGFzH8uHwJdpiIr6N9HOfcyLMvKNk3FR+Ek=' 'sha256-QfBrLlu/9IJgnIWXhmxP0LxahewiCzJhUjn30YjVrUQ='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1067,7 +1067,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '9 (15 Nov 2026, 00:11)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '10 (15 Nov 2026, 00:58)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -1411,10 +1411,12 @@ body.drop7 #mapName{min-width:60px}
   }
   P.openList = () => { if (token) mapsScreen(); else if (cfg) unlockScreen(); else setupScreen(); };
 
-  /* ---------- the phone's layout: the map fills the screen; the list and a card's details slide up from the bottom ---------- */
-  // Bars right out to the screen's edges (4px), the colour key in the corner, and the details sliding up from the
-  // bottom. While you type in the details, they fill the space above the keyboard (the map isn't needed then):
-  // --vvTop and --vvH follow the part of the screen the keyboard leaves (see fitKeyboard).
+  /* ---------- the phone's layout: the map fills the screen, with a card's details when one is picked ---------- */
+  // Upright: the two bars across the top (the view bar centred), the colour key in the corner, and the details
+  // sliding up from the bottom. On its side: the bars share the top row, and the details run down the left, the
+  // full height. (No card list: the menu's "Table of all cards" has them all, full screen.) While you type in the
+  // details, they fill the space above the keyboard (the map isn't needed then): --vvTop and --vvH follow the part of
+  // the screen the keyboard leaves (see fitKeyboard).
   const layoutCss = `body.phoneUI{--edge:4px;--gap:4px}
 body.phoneUI #minimap{display:none!important}
 body.phoneUI #left{left:var(--edge)!important;right:var(--edge)!important;width:auto!important;bottom:auto!important;top:calc(var(--edge) * 2 + var(--h-topbar) + env(safe-area-inset-top))!important}
@@ -1424,8 +1426,16 @@ body.phoneUI #topbar{width:auto!important}
 body.phoneUI #index,body.phoneUI #detail,body.phoneUI #scene{position:fixed!important;left:var(--edge)!important;right:var(--edge)!important;top:auto!important;bottom:calc(var(--edge) + env(safe-area-inset-bottom))!important;width:auto!important;max-height:56vh;z-index:16}
 body.phoneUI.phTyping #detail{top:calc(var(--vvTop,0px) + var(--edge))!important;bottom:auto!important;height:calc(var(--vvH,100vh) - 2 * var(--edge));max-height:none;z-index:30}
 body.phoneUI #index,body.phoneUI #scene,body.phoneUI.phNoSel #detail{display:none!important}   /* (just the map, and a card's details when one is picked) */
+@media (orientation: landscape) {
+body.phoneUI #left{left:calc(var(--edge) + env(safe-area-inset-left))!important;right:auto!important;width:var(--phSide,50vw)!important;top:calc(var(--edge) + env(safe-area-inset-top))!important}
+body.phoneUI #right{left:auto!important;right:calc(var(--edge) + env(safe-area-inset-right))!important;align-items:stretch}
+body.phoneUI.narrow #topbar{width:calc(100vw - 2 * var(--edge) - env(safe-area-inset-left) - env(safe-area-inset-right))!important}
+body.phoneUI.narrow #viewbar{background:transparent!important;box-shadow:none!important;border-color:transparent!important}
+body.phoneUI #detail{left:calc(var(--edge) + env(safe-area-inset-left))!important;right:auto!important;width:var(--phSide,50vw)!important;top:calc(var(--edge) * 2 + var(--h-topbar) + env(safe-area-inset-top))!important;max-height:none}
+}
+#phUL{position:fixed;z-index:60;right:calc(var(--edge,4px) + 4px);top:calc(var(--vvTop,0px) + var(--vvH,100vh) - 52px);min-width:44px;height:40px;font-size:18px;text-decoration:underline;display:none}
+body.phoneUI.phTypingAny #phUL{display:inline-flex;align-items:center;justify-content:center}
 body.phoneUI #ckBox{right:var(--edge);bottom:calc(var(--edge) + env(safe-area-inset-bottom));padding:6px 8px}
-#phList{display:none}
 body.phoneUI #btnPane{display:none!important}`;
   function fitKeyboard() {   // the part of the screen not under the keyboard
     const v = window.visualViewport, r = document.documentElement.style;
@@ -1433,17 +1443,36 @@ body.phoneUI #btnPane{display:none!important}`;
     r.setProperty('--vvTop', v.offsetTop + 'px'); r.setProperty('--vvH', v.height + 'px');
   }
   const typingIn = el => el instanceof Element && el.closest('#detail') && el.matches('input, textarea, select, [contenteditable]:not([contenteditable="false"])');
-  document.addEventListener('focusin', e => { if (typingIn(e.target)) { fitKeyboard(); document.body.classList.add('phTyping'); } });
-  document.addEventListener('focusout', () => setTimeout(() => { if (!typingIn(document.activeElement)) document.body.classList.remove('phTyping'); }, 50));
+  // Underlining (Ctrl+U on the laptop): a U button just above the keyboard while you type in the details or on a card.
+  const ulAble = el => el instanceof Element && el.closest('#detail, #cards') && el.matches('textarea, input[type="text"], [contenteditable]:not([contenteditable="false"])');
+  document.addEventListener('focusin', e => {
+    if (typingIn(e.target)) { fitKeyboard(); document.body.classList.add('phTyping'); }
+    if (ulAble(e.target)) { fitKeyboard(); document.body.classList.add('phTypingAny'); }
+  });
+  document.addEventListener('focusout', () => setTimeout(() => {
+    if (!typingIn(document.activeElement)) document.body.classList.remove('phTyping');
+    if (!ulAble(document.activeElement)) document.body.classList.remove('phTypingAny');
+  }, 50));
   if (window.visualViewport) { visualViewport.addEventListener('resize', fitKeyboard); visualViewport.addEventListener('scroll', fitKeyboard); }
-  const phoneSize = () => matchMedia('(max-width: 760px)').matches;
+  const phoneSize = () => matchMedia('(max-width: 760px), (max-height: 500px)').matches;   // (a phone, upright or on its side)
   function phoneLayout() {
     const b = document.body, on = phoneSize();
     b.classList.toggle('phoneUI', on);
-    if (!on) b.classList.remove('phList');
-    phoneSel();
-    if (typeof fitBars === 'function') fitBars();
+    const vb = document.getElementById('viewbar'), rt = document.getElementById('right'), fit = () => { if (typeof fitBars === 'function') fitBars(); };
+    if (rt) rt.style.removeProperty('right');
+    phoneSel(); fit();
+    if (on && vb && rt) {
+      if (innerWidth > innerHeight) {   // on its side: the name bar and the details take the room the view bar leaves
+        const ins = safeSides();
+        document.documentElement.style.setProperty('--phSide', Math.max(260, Math.min(460, innerWidth - vb.offsetWidth - ins.l - ins.r - 16)) + 'px');
+        fit();
+      } else rt.style.setProperty('right', Math.max(4, Math.round((innerWidth - vb.offsetWidth) / 2)) + 'px', 'important');   // upright: the view bar centred
+    }
     if (typeof updateBlurClip === 'function') updateBlurClip();
+  }
+  function safeSides() {   // the room the screen's rounded corners and notch take at the sides (on its side)
+    const p = document.createElement('div'); p.style.cssText = 'position:fixed;visibility:hidden;left:env(safe-area-inset-left);right:env(safe-area-inset-right);top:0;height:1px';
+    document.body.appendChild(p); const r = p.getBoundingClientRect(), out = {l: r.left, r: innerWidth - r.right}; p.remove(); return out;
   }
   function phoneSel() {   // details only while something is picked
     const none = !selected && !tagPane && !sleeveSel;
@@ -1482,11 +1511,16 @@ body.phoneUI #btnPane{display:none!important}`;
   function phoneSetup() {
     liteSetup();
     const st = document.createElement('style'); st.textContent = layoutCss; document.head.appendChild(st);
-    const btn = document.createElement('button');
-    btn.id = 'phList'; btn.className = 'btn icon'; btn.title = 'The list of cards';
-    btn.innerHTML = '<svg viewBox="0 0 16 16"><path d="M3 4.5h10M3 8h10M3 11.5h10"/></svg>';
-    btn.onclick = () => { document.body.classList.toggle('phList'); if (typeof updateBlurClip === 'function') updateBlurClip(); };
-    const tb = document.getElementById('topbar'); tb.insertBefore(btn, tb.firstChild);
+    // Find (Ctrl+F or / on the laptop): first in the menu
+    const menu = document.getElementById('menu'), fb = document.createElement('button');
+    fb.className = 'btn'; fb.id = 'phFind'; fb.textContent = 'Find on the map…';
+    fb.onclick = () => { if (typeof closeMenu === 'function') closeMenu(); if (typeof findOpen === 'function') findOpen(true); };
+    if (menu) menu.insertBefore(fb, menu.firstChild);
+    const ul = document.createElement('button');
+    ul.id = 'phUL'; ul.className = 'btn panel'; ul.textContent = 'U'; ul.title = 'Underline the word (or the words picked)';
+    ul.addEventListener('pointerdown', e => e.preventDefault());   // (the typing box keeps the keyboard and what's picked in it)
+    ul.onclick = () => { const el = document.activeElement; if (ulAble(el) && typeof toggleUnderline === 'function') toggleUnderline(el); };
+    document.body.appendChild(ul);
     const wrap = (name, after) => { const f = window[name]; if (typeof f !== 'function') return; window[name] = function (...a) { const r = f.apply(this, a); after(a); return r; }; };
     wrap('renderSettings', () => {   // the page's version, at the top of the settings menu
       const body = document.querySelector('#settings .p-body'); if (!body) return;
@@ -1494,7 +1528,6 @@ body.phoneUI #btnPane{display:none!important}`;
       v.textContent = 'Phone version ' + P.version; body.insertBefore(v, body.firstChild);
     });
     wrap('renderPanel', () => { phoneSel(); if (typeof updateBlurClip === 'function') updateBlurClip(); });
-    wrap('select', a => { if (a[0] === 'node' && document.body.classList.contains('phList')) { document.body.classList.remove('phList'); phoneSel(); if (typeof updateBlurClip === 'function') updateBlurClip(); } });
     const fr = window.freeRect;   // the free part of the screen: below the name bar too
     if (typeof fr === 'function') window.freeRect = function () {
       const r = fr.apply(this, arguments); if (!document.body.classList.contains('phoneUI')) return r;
@@ -1639,7 +1672,16 @@ let multiSel = new Set();   // cards picked out by double-click-dragging a box; 
 let multiSk = new Set();    // drawings picked out by the same box: they move with the cards
 let dragHold = null, dragProf = null, dragLayers = [];   // cards being dragged (see holdForDrag), and the frame timer's record of a drag
 const tim = (k, f) => { if (!dragProf) return f(); const t = performance.now(); try { return f(); } finally { dragProf.parts[k] = (dragProf.parts[k] || 0) + performance.now() - t; } };   // times a part of the work while a drag is timed
-function clearMulti() { multiSel = new Set(); multiSk = new Set(); }
+function clearMulti() { multiSel = new Set(); multiSk = new Set(); pickMode = false; }
+// Picking several cards: Shift+click each (on the phone: press and hold a card → "Pick more cards", then tap others).
+let pickMode = false;
+function pickToggle(n) {
+  if (!multiSel.size && selected && selected.type === 'node' && selected.id !== n.id && getNode(selected.id)) multiSel.add(selected.id);   // (the card already selected counts as the first)
+  if (multiSel.has(n.id)) multiSel.delete(n.id); else multiSel.add(n.id);
+  lastClick = null; renderMap(); renderSketches();
+  if (multiSel.size > 1) toast(pickMode ? `${multiSel.size} cards picked: drag any of them to move them together, or press and hold one to copy or cut them. Tap the map to finish.`
+    : `${multiSel.size} cards picked: drag any of them to move them together. Click the map or press Esc to let go.`);
+}
 
 const $ = s => document.querySelector(s);
 const canvas = $('#canvas'), world = $('#world'), svg = $('#links'), cardsEl = $('#cards');
@@ -3637,6 +3679,16 @@ function nearOnPath(d, x, y) {   // the nearest point of a drawn path: how far a
 // go, a card dropped on a wide line (its middle within 45px of it) goes into it, and a card in a line dropped clear
 // of it comes out. shapes: the lines as they were when the card was picked up (where you saw them as you dropped it).
 // Gives 'in', 'along' or 'out'; 'hint' for a plain drop on a wide line; false if lines don't come into it.
+// The phone has no Shift: a card's menu (press and hold it) puts it into the wide line it's been dragged onto, or out of its line.
+function phoneCardItems(id) {
+  const n = getNode(id); if (!n || REF || SAT) return '';
+  let out = `<button class="btn" data-clip="pick">Pick more cards…</button>`;
+  if (ridersLive()) {
+    if (riderDrop({...n}, true, linkShape) === 'in') out += `<button class="btn" data-clip="ridein">Put it in the line</button>`;   // (tried on a copy: just asking)
+    if (n.on) out += `<button class="btn" data-clip="rideout">Take it out of its line</button>`;
+  }
+  return out;
+}
 function riderDrop(n, shift, shapes) {
   if (!ridersLive()) return false;
   const b = cardBox(n.id); if (!b) return false;
@@ -8585,6 +8637,7 @@ if (!REF && !SAT) {
       return;
     }
     menu.innerHTML = (c ? `<button class="btn" data-clip="copy">Copy ${what}<kbd>Ctrl C</kbd></button><button class="btn" data-clip="cut">Cut ${what}<kbd>Ctrl X</kbd></button>` : '')
+      + (c && PHONE_ON ? phoneCardItems(c.dataset.id) : '')
       + (has ? `<button class="btn" data-clip="paste">Paste here<kbd>Ctrl V</kbd></button>` : '')
       + (!slvOn() ? '' : c ? `<button class="btn" data-clip="sleeve">Put ${n > 1 ? `the ${n} cards` : 'it'} in a sleeve</button>` + (slvOf(c.dataset.id) ? `<button class="btn" data-clip="unsleeve">Take it out of its sleeve</button>` : '')
         : `<button class="btn" data-clip="newsleeve">New sleeve here</button>`);
@@ -8599,6 +8652,13 @@ if (!REF && !SAT) {
     else if (k === 'newsleeve') { const w = toWorld({clientX: menu._spot.x, clientY: menu._spot.y}); makeSleeve(new Set(), {x: Math.round(w.x), y: Math.round(w.y)}); }
     else if (k === 'sturn') { const v = getSleeve(menu._slv.id); if (v) slvTurn(v, menu._slv.i); }
     else if (k === 'sdetails') slvSelect(menu._slv.id);
+    else if (k === 'pick') { const id = menu._card; clearMulti(); if (id) multiSel.add(id); pickMode = true; renderMap(); renderSketches();
+      toast('Tap other cards to pick them too (tap one again to let it go). Then drag any of them to move them together, or press and hold one to copy or cut them. Tap the map to finish.'); }
+    else if (k === 'ridein' || k === 'rideout') { const n = getNode(menu._card); if (n) { pushUndo();
+      if (k === 'ridein') { riderDrop(n, true, linkShape); toast('The card is in the line now. Drag it along the line to move it.'); }
+      else { const el = cardEls.get(n.id), r = el && el.getBoundingClientRect(); riderOut(n);   // (it steps out just below where it was in the line)
+        if (r) { const p = toWorld({clientX: r.left, clientY: r.bottom}); put2(n, Math.round(p.x), Math.round(p.y + 40)); } }
+      changed(); } }
     else if (k === 'unsleeve') { const id = menu._card, v = id && slvOf(id);
       if (v) { pushUndo(); slvTake(v, id); slvFlow(v); const n = getNode(id), b = cardBox(id);   // (it steps out to the side, clear of the sleeve)
         if (n && b) put2(n, Math.round(n.x + (v.dir === 'right' ? 0 : b.w + 60)), Math.round(n.y + (v.dir === 'right' ? b.h + 60 : 0))); changed(); } }
@@ -10334,7 +10394,7 @@ canvas.addEventListener('pointerup', e => {
       const inSlv = d.slv && slvDrop(d), rn = getNode(d.id);
       if (inSlv) { if (rn) riderOut(rn); renderMap(); }   // into a sleeve, out of one, or to another spot in it
       const rd = rn && !inSlv && riderDrop(rn, e.shiftKey, d.shapes || linkShape);   // with Shift: onto a wide line, into it; out of its line. Without: a card in a line slides along it
-      if (rd === 'hint') toast('To put the card in the line, hold Shift as you drop it.');
+      if (rd === 'hint') toast(PHONE_ON ? 'To put the card in the line, press and hold it, then choose “Put it in the line”.' : 'To put the card in the line, hold Shift as you drop it.');
       else if (rd) { changed(); if (rd === 'in') toast('The card is in the line now. Drag it along the line to move it; hold Shift and drag it away to take it out.'); return; }
       // With Ctrl held, a card dropped inside a group's area joins it, and one dragged out of a group's area
       // leaves it. Without Ctrl the card keeps its groups, and their areas reshape to follow it.
@@ -10356,13 +10416,7 @@ canvas.addEventListener('pointerup', e => {
     }
     if (d.chip) { openTag(d.chip.dataset.tag); return; }
     const n = getNode(d.id); if (!n) return;
-    if (e.shiftKey && !REF && !SAT && !view3()) {   // Shift+click: pick this card too (or let it go), to move, copy or cut them together
-      if (!multiSel.size && selected && selected.type === 'node' && selected.id !== n.id && getNode(selected.id)) multiSel.add(selected.id);   // (the card already selected counts as the first)
-      if (multiSel.has(n.id)) multiSel.delete(n.id); else multiSel.add(n.id);
-      lastClick = null; renderMap(); renderSketches();
-      if (multiSel.size > 1) toast(`${multiSel.size} cards picked: drag any of them to move them together. Click the map or press Esc to let go.`);
-      return;
-    }
+    if ((e.shiftKey || pickMode) && !REF && !SAT && !view3()) { pickToggle(n); return; }   // Shift+click: pick this card too (or let it go), to move, copy or cut them together
     const dbl = isDoubleClick(n.id, e);
     if (!isSel('node', n.id)) select('node', n.id);
     if (dbl) startCardEdit(n.id);   // double-click: edit right on the card
@@ -10370,9 +10424,9 @@ canvas.addEventListener('pointerup', e => {
     autosaveSoon();
     if (d.moved) return;
     if (d.tapLink) { select('link', d.tapLink); return; }   // (the phone: a tap on a line or a card picks it)
-    if (d.tapCard) { const n = getNode(d.tapCard); if (!n) return; if (d.chip) { openTag(d.chip.dataset.tag); return; } const dbl = isDoubleClick(n.id, e); if (!isSel('node', n.id)) select('node', n.id); if (dbl) startCardEdit(n.id); return; }
+    if (d.tapCard) { const n = getNode(d.tapCard); if (!n) return; if (pickMode) { pickToggle(n); return; } if (d.chip) { openTag(d.chip.dataset.tag); return; } const dbl = isDoubleClick(n.id, e); if (!isSel('node', n.id)) select('node', n.id); if (dbl) startCardEdit(n.id); return; }
     if (isDoubleClick('bg', e)) { const p = toWorld(e); addNode(p.x - 112, p.y - 20); }
-    else { if (multiSel.size || multiSk.size) { clearMulti(); renderMap(); renderSketches(); } if (selected) select(null); if (sleeveSel) { sleeveSel = null; renderPanel(); } }
+    else { pickMode = false; if (multiSel.size || multiSk.size) { clearMulti(); renderMap(); renderSketches(); } if (selected) select(null); if (sleeveSel) { sleeveSel = null; renderPanel(); } }
   } else if (d.type === 'connect') {
     tempLink = null;
     const over = document.elementFromPoint(e.clientX, e.clientY);
