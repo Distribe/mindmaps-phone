@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-j+1cIBXr3TD9K019rsz0TFtxivPYFHHl/oxEgQ24jJw=' 'sha256-HeaqGXDRfQ9lhz6UvyJPCd44p8XXQ17fuQ4GKpVNcno='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-//v+FzvPNZMruPmB2LeRzkuMGNCnqD9DHdrzi/1nIh8=' 'sha256-ENo5xZSkTDaxdw48JJZQoE5ToST4VaooVc29FXh0P7o='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -595,6 +595,7 @@ body.ref #detail [data-act="edit"],body.ref #detail [data-o="edit"],body.ref #de
 .lbrow > div{flex:1;min-width:0}
 .lbrow b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lbrow .meta{font-size:var(--t-small);color:var(--muted);opacity:.85}
+.lbrow .lbnote{display:block;margin-top:4px;padding:6px 8px;border-radius:var(--r-md);background:rgba(255,190,90,.18);border:1px solid rgba(255,190,90,.45);font-size:var(--t-small);white-space:normal;line-height:1.4}
 .lbrow svg.fi{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.4;opacity:.85}
 .lbrow .acts{display:flex;gap:4px;flex:none}
 .lbrow .tag{font-size:var(--t-small);padding:1px 6px;border-radius:var(--r-sm);background:var(--accent-soft)}
@@ -1067,7 +1068,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '21 (15 Nov 2026, 12:58)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '22 (16 Nov 2026, 17:05)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -2325,6 +2326,7 @@ function normalize(o) {
   const old = !Array.isArray(o.colorKey);   // (a map from before colour keys: its old palette's colours are brought up to date; a map with a key keeps every colour exactly)
   s.name = String(o.name || 'Untitled map');
   if (o.id) s.id = String(o.id);
+  if (o.copyNote && typeof o.copyNote === 'object') s.copyNote = Object.fromEntries(['of', 'ofName', 'at', 'why'].map(k => [k, String(o.copyNote[k] ?? '').slice(0, 300)]));   // (a phone copy: see Your maps)
   s.fields = [...new Set((Array.isArray(o.fields) ? o.fields : []).map(String).filter(Boolean))];
   s.listFields = (Array.isArray(o.listFields) ? o.listFields : []).map(String).filter(f => s.fields.includes(f));   // fields that hold a list of items (pieces of evidence…)
   s.tags = (Array.isArray(o.tags) ? o.tags : []).filter(t => t && t.name)
@@ -7867,6 +7869,13 @@ function whenSaved(t) {
   const hm = d.toLocaleTimeString(undefined, {hour: '2-digit', minute: '2-digit'});
   return day === now.toDateString() ? 'Today ' + hm : day === y.toDateString() ? 'Yesterday ' + hm : d.toLocaleDateString(undefined, {day: 'numeric', month: 'short', year: 'numeric'}) + ', ' + hm;
 }
+// A phone copy's note in Your maps: what happened, and what to do about it.
+function copyNoteHtml(c) {
+  if (!c || !c.ofName) return '';
+  const main = `“${esc(c.ofName)}”`;
+  return `<span class="lbnote"><b style="display:inline;white-space:normal">Phone copy of ${main}</b>, made ${esc(c.at)}. Both the phone and this laptop changed that map, and the two couldn’t be merged automatically (${esc(c.why)}), so the phone’s version was kept here instead. ${main} itself wasn’t changed.<br>
+    <b style="display:inline">To bring changes across:</b> open ${main}, click the draft button by its name → <i>Show another map above…</i> → pick this copy, then drag down the cards you want. Or, if this copy is the better one, keep it and delete the other. <b style="display:inline">When you’re done,</b> delete this copy.</span>`;
+}
 async function renderLibrary() {
   const box = $('#library'); appCfg = await app('config');
   if (!appCfg.libraryOk) { openLibrary(false); showWelcome(); return; }
@@ -7890,7 +7899,7 @@ async function renderLibrary() {
       ${subs.map(f => `<div class="lbrow" data-lfo="${esc(f)}" data-drop="${esc(f)}" title="Open this folder (or drop a map here to move it)">${FOLDER_ICON}<div><b>${esc(f.split('/').pop())}</b><span class="meta">${plural(inside(f), 'map')}</span></div>
         <span class="acts"><button class="btn" data-lfr="${esc(f)}">Rename</button><button class="btn" data-lfd="${esc(f)}">Delete</button></span></div>`).join('')}
       ${here.map(m => `<div class="lbrow${m.file === fileName ? ' on' : ''}" data-lf="${esc(m.file)}" draggable="true" title="Open this map (or drag it onto a folder)">${MAP_ICON}<div><b>${esc(m.name)}</b>
-          <span class="meta">Last saved ${whenSaved(m.saved)} · ${m.cards == null ? '?' : +m.cards || 0} cards · ${m.links == null ? '?' : +m.links || 0} links${+m.drafts > 1 ? ` · ${+m.drafts} drafts` : ''} · ${plural(+m.versions || 0, 'version')}</span></div>
+          <span class="meta">Last saved ${whenSaved(m.saved)} · ${m.cards == null ? '?' : +m.cards || 0} cards · ${m.links == null ? '?' : +m.links || 0} links${+m.drafts > 1 ? ` · ${+m.drafts} drafts` : ''} · ${plural(+m.versions || 0, 'version')}</span>${copyNoteHtml(m.copyNote)}</div>
         <span class="acts">${m.file === fileName ? '<span class="tag">Open now</span>' : `${tabs.some(t => t.id !== tabCur && t.fileName === m.file) ? '<button class="btn" data-lf="${esc(m.file)}" title="Go to its tab">In a tab</button>' : `<button class="btn" data-lf="${esc(m.file)}" title="Open it in a new tab (or just click the map)">Open in new tab</button>`}<button class="btn icon" data-lw="${esc(m.file)}" title="Open it in a window of its own">${NEWWIN_ICON}</button>`}
           <button class="btn" data-lr="${esc(m.file)}">Rename</button><button class="btn" data-lm="${esc(m.file)}">Move…</button><button class="btn" data-ld="${esc(m.file)}" title="Delete it (to the Recycle Bin)">Delete</button></span></div>`).join('')}
       ${!subs.length && !here.length ? `<div class="muted" style="padding:12px 8px">${libFolder ? 'This folder is empty. Drag a map onto it, or use a map’s Move… button.' : 'No maps here yet. Save (Ctrl+S) puts the map you’re working on in the library.'}</div>` : ''}
@@ -9275,7 +9284,43 @@ const merge3 = (() => {
   };
   const plainObj = x => x && typeof x === 'object' && !Array.isArray(x);
   const keyOf = xs => { if (!xs.length || !xs.every(plainObj)) return null; for (const k of ['id', 'name']) if (xs.every(x => typeof x[k] === 'string')) return k; return null; };
+  // One draft's own part of a map (as draftData), and a map file as it would be saved on draft id: that draft at the
+  // top, the one there put into the drafts list. A version without that draft (started since) gets mine's at the top,
+  // unchanged. null: can't be read. (As on_draft in Phone/mapmerge.py.)
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const dData = s => clone({nodes: s.nodes, links: s.links, sketches: s.sketches || [], sleeves: s.sleeves || [], tags: s.tags, fields: s.fields, listFields: s.listFields || [], settings: s.settings, ...(s.colorKey ? {colorKey: s.colorKey} : {})});
+  function onDraft(o, id, mine) {
+    if (!plainObj(o) || !id || !Array.isArray(o.drafts) || o.draft === id) return o;
+    const ds = o.drafts.filter(plainObj), to = ds.find(d => d.id === id), cur = o.draft || (ds.find(d => !d.data) || {}).id;
+    const data = to && plainObj(to.data) ? clone(to.data) : !to && mine ? dData(mine) : null;
+    if (!data) return null;
+    const out = {...o, ...data, draft: id};
+    for (const k of ['sleeves', 'sketches']) if (!(k in data)) delete out[k];
+    out.drafts = ds.map(d => d.id === cur ? {id: d.id, name: d.name, created: d.created, data: dData(o)} : d.id === id ? {id: d.id, name: d.name, created: d.created} : d);
+    return out;
+  }
+  // What two versions have the same: with no version both last had, this stands in for it (anything in only one of
+  // them is kept; a card with different words on each is kept twice).
+  const common = (m, t) => {
+    if (same(m, t)) return clone(m);
+    if (plainObj(m) && plainObj(t)) { const o = {}; for (const k of Object.keys(m)) if (k in t) { const v = common(m[k], t[k]); if (v !== GONE) o[k] = v; } return o; }
+    if (Array.isArray(m) && Array.isArray(t)) {
+      const key = keyOf([...m, ...t]);
+      if (key) { const ti = new Map(t.map(x => [x[key], x])); return m.filter(x => ti.has(x[key])).map(x => common(x, ti.get(x[key]))).filter(v => v !== GONE); }
+      return m.filter(x => t.some(y => same(x, y)));
+    }
+    return GONE;
+  };
+  // base null: no version both last had. Each draft is merged with the same draft on the other side, whichever draft
+  // each side is on; the result is on mine's. Throws if that can't be done (one side has drafts, this one none).
   function merge3(base, mine, theirs, label) {
+    const did = plainObj(mine) ? mine.draft : '';
+    if ([base, theirs].some(x => plainObj(x) && Array.isArray(x.drafts) && x.draft !== did)) {
+      if (!did) throw new Error('one side has drafts, the other none');
+      base = onDraft(base, did, mine); theirs = onDraft(theirs, did, mine);
+      if (!theirs) throw new Error('a draft can’t be read');
+    }
+    if (!base) base = common(mine, theirs);
     let copies = 0, found = null;
     const copyOf = card => { const c = JSON.parse(JSON.stringify(card)); c.id = Math.random().toString(36).slice(2, 12); c.title = (c.title || 'Untitled') + ` (${label} version)`;
       for (const k of ['x', 'y']) if (typeof c[k] === 'number') c[k] += 40; for (const k of ['d3', 's2', 't2', 's2f', 'on', 'onT', 'onR']) delete c[k]; copies++; return c; };
@@ -9316,9 +9361,10 @@ const merge3 = (() => {
       }
       return [...out, ...extra];
     };
-    return {map: value(base, mine, theirs, []), copies};
+    return {map: value(base, mine, theirs, []), copies, theirs};
   }
   merge3.same = same;   // (are two maps the same)
+  merge3.onDraft = onDraft;
   return merge3;
 })();
 const typingNow = () => { const a = document.activeElement; return !!(a && a !== document.body && a.matches && a.matches('input, textarea, select, [contenteditable]:not([contenteditable="false"])')); };
@@ -9329,10 +9375,10 @@ const typingNow = () => { const a = document.activeElement; return !!(a && a !==
 function takeIn(baseText, theirsText, label) {
   if (drag || cardEdit || tabBusy || diveBusy() || spatial || typingNow()) return null;
   let base, theirs; try { base = JSON.parse(baseText); theirs = JSON.parse(theirsText); } catch (e) { return {error: 'not readable'}; }
-  if (!base || !theirs || !Array.isArray(theirs.nodes) || !Array.isArray(base.nodes)) return {error: 'not readable'};
-  const L = serialize(), d = L.draft || '';
-  if ((theirs.draft || '') !== d || (base.draft || '') !== d) return {error: 'on another draft'};
-  const {map: M, copies} = merge3(base, L, theirs, label);
+  if (!theirs || !Array.isArray(theirs.nodes) || (base && !Array.isArray(base.nodes))) return {error: 'not readable'};
+  const L = serialize();
+  let M, copies, T;   // (each draft merged with the same draft on the other side, whichever each is on)
+  try { ({map: M, copies, theirs: T} = merge3(base, L, theirs, label)); } catch (e) { return {error: String(e.message || e)}; }
   pushUndo();
   if (Array.isArray(M.drafts)) project.drafts = M.drafts.map(x => x.id === project.cur ? {id: x.id, name: x.name, created: x.created} : {...x});
   const top = {...state, ...normalize({...M, name: M.name}), settings: state.settings};
@@ -9341,7 +9387,7 @@ function takeIn(baseText, theirsText, label) {
   renderHeader(); renderTabs(); renderDraftMenu();
   if (copies) toast(`Changes from the ${label} merged in. ${copies === 1 ? 'A card was' : copies + ' cards were'} changed on both: the ${label}’s ${copies === 1 ? 'version is' : 'versions are'} beside ${copies === 1 ? 'it' : 'them'}, marked “(${label} version)”.`);
   const text = JSON.stringify(serialize(), null, 2);
-  return {text, copies, same: merge3.same(M, theirs)};
+  return {text, copies, same: merge3.same(M, T)};   // (just theirs, on this draft)
 }
 // What the other side has open, shown by the Saved light: "Phone: here" while it's working on this same map.
 // note: {map, state: 'active'|'idle'|'closed', at (seconds)}; who: 'Phone' or 'Laptop'; here: this map's file.
