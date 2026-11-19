@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-c7aHWk7ap+uspkXtltla7uOg2XbqMegXMSNfo3aJ3ME=' 'sha256-bFYNvO46fVmHWnxMxW4mTZ/2gTWExtu2FaG8PWFcZf4='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-GZnaVmAtvBjHikGZ5JXFBrsJHsb5N8KzvLe1K/LlAVM=' 'sha256-Zjtg2s/iBOxP3sUBfBZKt+KBuXJx7+R/twlVKTQ688s='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -172,6 +172,7 @@ kbd{font-family:var(--ui);font-size:11px;background:var(--panel-2);border:1px so
 .card.rider .wgrip{display:none}
 .card.rider .liftW{min-width:22px;height:7px;bottom:-7px}   /* (a box in a line: its handle, smaller; the line swells round it as well) */
 .card.drop{box-shadow:0 0 0 2px var(--accent),0 0 0 7px rgba(51,65,85,.22)}
+.card.boxdrop{outline:3px solid #e0a030;outline-offset:5px}
 .c-title{font-weight:600;font-size:calc(15px * var(--fs));line-height:round(calc(15px * var(--fs) * 1.25), 1px);overflow-wrap:anywhere}   /* line heights in whole pixels: every card is a whole number of pixels tall, */
 .c-summary{font-size:calc(13px * var(--fs));line-height:round(calc(13px * var(--fs) * 1.4), 1px);margin-top:4px;overflow-wrap:anywhere}   /* so a box's handle and its outline land on whole pixels, as the card's edges do */
 .c-summary{opacity:.72;white-space:pre-wrap}   /* a summary can have several lines, e.g. a list */
@@ -1068,7 +1069,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '23 (19 Nov 2026, 19:53)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '24 (19 Nov 2026, 20:23)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -6601,9 +6602,9 @@ function ejectCards(ids) {
   }
   for (const l of carry) e.links.push(l);
   changed();
-  const name = out.length === 1 ? `“${out[0].title || 'Untitled'}”` : `${out.length} cards`;
-  toastAction(`${name} taken out of “${box.title || 'the box'}”: ${out.length === 1 ? 'it’s' : 'they’re'} just to its right, on the level above.` +
-    (dropped ? ` ${dropped} line${dropped === 1 ? '' : 's'} to cards still inside ${dropped === 1 ? 'was' : 'were'} dropped.` : '') + ' Ctrl+Z puts it back.',
+  const short = t => t.length > 40 ? t.slice(0, 38).trim() + '…' : t, name = out.length === 1 ? `“${short(out[0].title || 'Untitled')}”` : `${out.length} cards`;
+  toastAction(`${name} taken out of “${short(box.title || 'the box')}”, to its right on the level above.` +
+    (dropped ? ` ${dropped} line${dropped === 1 ? '' : 's'} to cards inside dropped.` : '') + ' Ctrl+Z undoes.',
     'Go out to see', () => { if (diveBusy()) return; const first = out[0].id; leaveCard(); setTimeout(() => { if (getNode(first)) select('node', first, {center: true}); }, 1150); });
 }
 function deleteNode(id) {
@@ -10418,12 +10419,13 @@ canvas.addEventListener('pointermove', e => {
     const n = getNode(drag.id); if (!n) return;
     if (!drag.moved) { drag.moved = true; pushUndo(); if (multiSel.has(n.id) && multiCount() > 1) drag.set = startMoveSet(multiSel, multiSk); }
     const p = toWorld(e);
-    if (drag.set) { const o = drag.set.find(o => o.n === n), sp = snapAt(drag.el, p.x - drag.ox, p.y - drag.oy, e.shiftKey); moveSet(drag.set, sp.x - o.x, sp.y - o.y); return; }   // the card held snaps; the others keep their places around it   // a picked card: they all move
+    if (drag.set) { const o = drag.set.find(o => o.n === n), sp = snapAt(drag.el, p.x - drag.ox, p.y - drag.oy, e.shiftKey); moveSet(drag.set, sp.x - o.x, sp.y - o.y); boxDragOver(drag, p); return; }   // the card held snaps; the others keep their places around it   // a picked card: they all move
     const sp = snapAt(drag.el, p.x - drag.ox, p.y - drag.oy, e.shiftKey);
     put2(n, sp.x, sp.y);
     holdForDrag([n.id]); placeCard(drag.el, n);
     linksSoon();
     slvDragOver(drag, p);   // over a sleeve: it makes room
+    boxDragOver(drag, p);   // over the middle of a shoebox for half a second: it's outlined, and letting go puts the card inside
   } else if (drag.type === 'pan') {
     const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
     if (Math.hypot(dx, dy) > 3) drag.moved = true;
@@ -10487,6 +10489,57 @@ function endDragHold() {
   if (P && P.times.length > 2) { const f = P.times.length - 1;
     reportFrames(P.times, 'Card drag', ' Work per frame: ' + Object.entries(P.parts).map(([k, v]) => `${k} ${(v / f).toFixed(1)}ms`).join(', ') + '.'); }
 }
+// Dragging cards into a shoebox: with the pointer over a shoebox (at least 10px in from its edge, on the screen) for
+// half a second, the box is outlined; let go and the card goes inside it, to the matching spot in its space (several
+// picked cards keep their places around the one held). Lines between them go in with them; lines to cards left out
+// here are dropped (said in the message). The drag and this are one undo step.
+function boxDragOver(d, p) {
+  if (!d || REF || SAT || view3() || spatial) return;
+  const moving = d.set ? new Set(d.set.filter(o => o.n).map(o => o.n.id)) : new Set([d.id]), m = 10 / view.s;
+  let hit = '';
+  for (const n of state.nodes) {   // (the last drawn is on top)
+    if (!n.inner || moving.has(n.id)) continue;
+    const b = cardBox(n.id);
+    if (b && p.x > b.x + m && p.x < b.x + b.w - m && p.y > b.y + m && p.y < b.y + b.h - m) hit = n.id;
+  }
+  if (hit === (d.boxOver || '')) return;
+  boxDropClear(d); d.boxOver = hit;
+  if (hit) d.boxT = setTimeout(() => { if (drag !== d || d.boxOver !== hit) return; d.boxArmed = hit; const el = cardEls.get(hit); if (el) el.classList.add('boxdrop'); }, 500);
+}
+function boxDropClear(d) {
+  if (d) { clearTimeout(d.boxT); d.boxT = 0; d.boxArmed = ''; d.boxOver = ''; }
+  cardsEl.querySelectorAll('.card.boxdrop').forEach(c => c.classList.remove('boxdrop'));
+}
+function putInBox(ids, boxId, heldId, p) {
+  const box = getNode(boxId), b = cardBox(boxId); if (!box || !box.inner || !b || REF || SAT) return;
+  const out = state.nodes.filter(n => ids.has(n.id) && n.id !== boxId); if (!out.length) return;
+  const r = boxRatio(box, b), W = box.inner.w || spaceWidth(r), H = W * r;
+  const inn = box.inner; inn.nodes = inn.nodes || []; inn.links = inn.links || []; inn.sketches = inn.sketches || [];
+  if (!inn.w) inn.w = Math.round(W);
+  const size = n => { const el = cardEls.get(n.id); return {w: el ? el.offsetWidth : 224, h: el ? el.offsetHeight : 60}; };
+  const held = out.find(n => n.id === heldId) || out[0], hs = size(held);
+  const cx = (p.x - b.x) / b.w * W, cy = (p.y - b.y) / b.h * H;   // the spot in the box's space that matches where it was let go
+  const ax = cx - hs.w / 2 - held.x, ay = cy - hs.h / 2 - held.y;   // (the others keep their places around the one held)
+  const taken = inn.nodes.map(n => ({x: n.x, y: n.y}));
+  const clear = (x, y) => !taken.some(t => Math.abs(t.x - x) < 230 && Math.abs(t.y - y) < 80);
+  for (const n of out.sort((a, c) => (a.y - c.y) || (a.x - c.x))) {
+    const z = size(n);
+    let x = clamp(Math.round(n.x + ax), 16, Math.max(16, W - z.w - 16)), y = clamp(Math.round(n.y + ay), 60, Math.max(60, H - z.h - 16));
+    let tries = 0; while (!clear(x, y) && tries++ < 40) y += 30;
+    n.x = x; n.y = y; taken.push({x, y});
+  }
+  const keep = state.links.filter(l => !ids.has(l.from) && !ids.has(l.to)), carry = state.links.filter(l => ids.has(l.from) && ids.has(l.to));
+  const dropped = state.links.length - keep.length - carry.length;
+  if (slvOn()) for (const n of out) { const v = slvOf(n.id); if (v) { slvTake(v, n.id); slvFlow(v); } }
+  state.nodes = state.nodes.filter(n => !ids.has(n.id) || n.id === boxId); state.links = keep;
+  for (const n of out) { multiSel.delete(n.id); delete n.on; delete n.onT; delete n.onR; inn.nodes.push(n); }
+  for (const l of carry) inn.links.push(l);
+  if (selected && selected.type === 'node' && ids.has(selected.id)) selected = null;
+  changed(); if (typeof warmBoxes === 'function') setTimeout(warmBoxes, 300);
+  const short = t => t.length > 40 ? t.slice(0, 38).trim() + '…' : t, name = out.length === 1 ? `“${short(out[0].title || 'Untitled')}”` : `${out.length} cards`;
+  toastAction(`${name} put inside “${short(box.title || 'the box')}”.` + (dropped ? ` ${dropped} line${dropped === 1 ? '' : 's'} to cards outside dropped.` : '') + ' Ctrl+Z undoes.',
+    'Open the box', () => { if (!diveBusy() && getNode(boxId)) enterCard(boxId); });
+}
 function moveSet(set, dx, dy) {
   holdForDrag(set.filter(o => o.n).map(o => o.n.id));
   let drew = false;
@@ -10542,6 +10595,12 @@ canvas.addEventListener('pointerup', e => {
   }
   if (d.type === 'set') { if (d.moved) { slvAfterSet(d.set); markDirty(); renderMap(); syncBlur(); } return; }
   if (d.type === 'node') {
+    const into = d.boxArmed; boxDropClear(d);
+    if (d.moved && into && getNode(into)) {   // let go over an outlined shoebox: in it goes (the move and this are one undo step)
+      if (!d.set) slvUndrag(d);
+      putInBox(d.set ? new Set(d.set.filter(o => o.n).map(o => o.n.id)) : new Set([d.id]), into, d.id, toWorld(e));
+      return;
+    }
     if (d.moved) {
       if (d.set) { slvAfterSet(d.set); markDirty(); renderMap(); return; }
       const inSlv = d.slv && slvDrop(d), rn = getNode(d.id);
@@ -10592,7 +10651,7 @@ canvas.addEventListener('pointerup', e => {
     } else renderMap();
   }
 });
-canvas.addEventListener('pointercancel', () => { slvUndrag(drag); drag = null; tempLink = null; sketchDraft = null; canvas.classList.remove('panning'); renderMap(); });
+canvas.addEventListener('pointercancel', () => { boxDropClear(drag); slvUndrag(drag); drag = null; tempLink = null; sketchDraft = null; canvas.classList.remove('panning'); renderMap(); });
 canvas.addEventListener('scroll', () => { canvas.scrollTop = 0; canvas.scrollLeft = 0; });   // the map never scrolls (focusing something near an edge could make the browser try)
 canvas.addEventListener('wheel', e => {
   e.preventDefault();
