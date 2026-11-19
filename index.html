@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-//v+FzvPNZMruPmB2LeRzkuMGNCnqD9DHdrzi/1nIh8=' 'sha256-ENo5xZSkTDaxdw48JJZQoE5ToST4VaooVc29FXh0P7o='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-c7aHWk7ap+uspkXtltla7uOg2XbqMegXMSNfo3aJ3ME=' 'sha256-bFYNvO46fVmHWnxMxW4mTZ/2gTWExtu2FaG8PWFcZf4='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1068,7 +1068,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '22 (16 Nov 2026, 17:05)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '23 (19 Nov 2026, 19:53)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -5951,6 +5951,7 @@ function tagRow(n) {
 const isTagInput = el => el && (el.id === 'fNewTag' || el.id === 'fPrimTag');
 // Plain card or shoebox (a space inside, with a handle under the card): one click to change.
 const BOX_BTN = n => `<button class="btn icon ${n.inner ? 'on' : ''}" data-act="box" title="${n.inner ? 'A shoebox: it holds a space inside. Click to make it a plain card' : 'A plain card. Click to make it a shoebox that holds a space inside'}"><svg viewBox="0 0 16 16">${n.inner ? '<path d="M2 3h12v6H2z"/><path d="M5.5 9h5l-.9 2.5H6.4z"/>' : '<rect x="2" y="4" width="12" height="7" rx="1.5"/>'}</svg></button>`;
+const EJECT_BTN = '<button class="btn icon" data-act="eject" title="Take this card out of the box it’s in (it goes just to the right of the box, on the level above)"><svg viewBox="0 0 16 16"><path d="M8 3 3 9h10z"/><path d="M3 12.5h10"/></svg></button>';
 const FOCUS_BTN = on => `<button class="btn icon ${on ? 'on' : ''}" data-act="focus" title="Focus: fade every card not connected to this one (Space)"><svg viewBox="0 0 16 16"><path d="M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8z"/><circle cx="8" cy="8" r="2"/></svg></button>`;
 // The card panel. Reading and editing share one layout: editing only draws a faint outline around each piece
 // of text you can change (taking no space, so nothing moves) and adds the extra controls - add a tag, connect,
@@ -5971,7 +5972,7 @@ function renderCard(box, n, edit) {
       ? v.map((x, i) => `<div class="fitem"><textarea class="edx" data-field="${esc(f)}" data-li="${i}" rows="1" placeholder="–">${esc(x)}</textarea><button class="btn icon" data-lidel="${i}" title="Remove this item"><svg viewBox="0 0 16 16"><path d="m4 4 8 8M12 4l-8 8"/></svg></button></div>`).join('') + `<button class="btn fadd" data-liadd="${esc(f)}">+ Add</button>`
       : v.filter(x => x.trim()).map(x => `<div class="fitem" data-edit="f:${esc(f)}">${ulHtml(x)}</div>`).join('')) + '</div>'; };
   const fieldRow = f => isList(f) ? listRow(f) : `<span>${esc(f)}</span>` + (edit ? `<textarea class="edx" data-field="${esc(f)}" rows="1" placeholder="–">${esc(n.fields[f] ?? '')}</textarea>` : `<div data-edit="f:${esc(f)}">${ulHtml(n.fields[f])}</div>`);
-  box.innerHTML = `<div class="p-head"><span class="strip" style="background:${strip}"></span>${title}${BOX_BTN(n)}${btn}${FOCUS_BTN(focusMode)}${minBtn()}</div>
+  box.innerHTML = `<div class="p-head"><span class="strip" style="background:${strip}"></span>${title}${canEject() ? EJECT_BTN : ''}${BOX_BTN(n)}${btn}${FOCUS_BTN(focusMode)}${minBtn()}</div>
     <div class="p-body">
       ${tagRow(n)}
       ${n.summary ? text('summary', 'r-sum', n.summary, 'A short summary, shown on the map (Enter for a new line)') : ''}
@@ -5996,6 +5997,7 @@ function renderCard(box, n, edit) {
           <div class="palette">${ckey().map(k => `<button data-color="${k.color}" class="${k.color.toLowerCase() === n.color.toLowerCase() ? 'cur' : ''}" style="background:${shown(k.color)}" title="${esc(k.label || 'Card colour')}"></button>`).join('')}
             <input type="color" id="fColor" value="${n.color}" title="Any colour">${PICK_BTN}</div>
           <span class="grow"></span>
+          ${canEject() ? '<button class="btn" data-act="eject" title="Take this card out of the box it’s in: it goes just to the right of the box, on the level above (you can undo)">Take out of the box</button>' : ''}
           <button class="btn danger" data-act="delete" title="Delete this card (you can undo)">Delete</button>
         </div></div>` : ''}
     </div>`;
@@ -6414,6 +6416,7 @@ detail.addEventListener('click', e => {
   else if (b.dataset.act === 'read') { panelMode = 'read'; renderPanel(); }
   else if (b.dataset.act === 'focus') toggleFocus();
   else if (b.dataset.act === 'delete') deleteNode(n.id);
+  else if (b.dataset.act === 'eject') ejectCards(new Set([n.id]));
   else if (b.dataset.color) { pushUndo(); n.color = b.dataset.color; changed(); }
   else if (b.dataset.goto) select('node', b.dataset.goto, {center: true});
   else if (b.dataset.unlink) {
@@ -6572,6 +6575,36 @@ function addNode(x, y) {
   changed();
   if (holder()) { put2(n, n.x, n.y); renderMap(); }   // now that its size is known, make sure all of it is inside the box
   editSelected();
+}
+// Cards taken out of the box you're in (right-click → Take out of the box, or the eject button in the details): they
+// land just to the right of the box on the level above, one under another, clear of the cards there. Lines between
+// them come out with them; lines to cards left inside are dropped (said in the message). Undo puts it all back.
+const canEject = () => !!holder() && !REF && !SAT;
+function ejectCards(ids) {
+  const e = holder(), box = holderCard(); if (!e || !box || REF || SAT) return;
+  const out = state.nodes.filter(n => ids.has(n.id)); if (!out.length) return;
+  pushUndo();
+  const keep = state.links.filter(l => !ids.has(l.from) && !ids.has(l.to)), carry = state.links.filter(l => ids.has(l.from) && ids.has(l.to));
+  const dropped = state.links.length - keep.length - carry.length;
+  if (slvOn()) for (const n of out) { const v = slvOf(n.id); if (v) { slvTake(v, n.id); slvFlow(v); } }
+  state.nodes = state.nodes.filter(n => !ids.has(n.id)); state.links = keep;
+  for (const n of out) { multiSel.delete(n.id); delete n.on; delete n.onT; delete n.onR; }
+  if (selected && selected.type === 'node' && ids.has(selected.id)) selected = null;
+  // where they go: right of the box, from its top down, each moved down until it's clear of the cards up there
+  const bw = e.k * e.w, x = Math.round(box.x + bw + 50), taken = e.nodes.filter(n => n.id !== box.id).map(n => ({x: n.x, y: n.y}));
+  let y = Math.round(box.y);
+  const clear = (px, py) => !taken.some(t => Math.abs(t.x - px) < 240 && Math.abs(t.y - py) < 90);
+  for (const n of out.sort((a, b) => (a.y - b.y) || (a.x - b.x))) {
+    let tries = 0; while (!clear(x, y) && tries++ < 60) y += 30;
+    n.x = x; n.y = y; taken.push({x, y}); y += 100;
+    e.nodes.push(n);
+  }
+  for (const l of carry) e.links.push(l);
+  changed();
+  const name = out.length === 1 ? `“${out[0].title || 'Untitled'}”` : `${out.length} cards`;
+  toastAction(`${name} taken out of “${box.title || 'the box'}”: ${out.length === 1 ? 'it’s' : 'they’re'} just to its right, on the level above.` +
+    (dropped ? ` ${dropped} line${dropped === 1 ? '' : 's'} to cards still inside ${dropped === 1 ? 'was' : 'were'} dropped.` : '') + ' Ctrl+Z puts it back.',
+    'Go out to see', () => { if (diveBusy()) return; const first = out[0].id; leaveCard(); setTimeout(() => { if (getNode(first)) select('node', first, {center: true}); }, 1150); });
 }
 function deleteNode(id) {
   const n = getNode(id); if (!n) return;
@@ -8719,6 +8752,7 @@ if (!REF && !SAT) {
     }
     menu.innerHTML = (c ? `<button class="btn" data-clip="copy">Copy ${what}<kbd>Ctrl C</kbd></button><button class="btn" data-clip="cut">Cut ${what}<kbd>Ctrl X</kbd></button>` : '')
       + (c && PHONE_ON ? phoneCardItems(c.dataset.id) : '')
+      + (c && canEject() ? `<button class="btn" data-clip="eject">Take ${n > 1 ? `the ${n} cards` : 'it'} out of the box</button>` : '')
       + (has ? `<button class="btn" data-clip="paste">Paste here<kbd>Ctrl V</kbd></button>` : '')
       + (!slvOn() ? '' : c ? `<button class="btn" data-clip="sleeve">Put ${n > 1 ? `the ${n} cards` : 'it'} in a sleeve</button>` + (slvOf(c.dataset.id) ? `<button class="btn" data-clip="unsleeve">Take it out of its sleeve</button>` : '')
         : `<button class="btn" data-clip="newsleeve">New sleeve here</button>`);
@@ -8733,6 +8767,7 @@ if (!REF && !SAT) {
     else if (k === 'newsleeve') { const w = toWorld({clientX: menu._spot.x, clientY: menu._spot.y}); makeSleeve(new Set(), {x: Math.round(w.x), y: Math.round(w.y)}); }
     else if (k === 'sturn') { const v = getSleeve(menu._slv.id); if (v) slvTurn(v, menu._slv.i); }
     else if (k === 'sdetails') slvSelect(menu._slv.id);
+    else if (k === 'eject') ejectCards(new Set(clipIds()));
     else if (k === 'pick') { const id = menu._card; clearMulti(); if (id) multiSel.add(id); pickMode = true; renderMap(); renderSketches();
       toast('Tap other cards to pick them too (tap one again to let it go). Then drag any of them to move them together, or press and hold one to copy or cut them. Tap the map to finish.'); }
     else if (k === 'ridearm') { rideArm = menu._card || ''; if (rideArm && !isSel('node', rideArm)) select('node', rideArm); toast('Now drag the card onto a wide line and let go there.'); }
