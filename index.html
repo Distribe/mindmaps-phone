@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/oGBDeCf7jHIyEQukHgzpvsk5Mg+Uw053b5ABdZSpbU=' 'sha256-Oews+zDFJNQdfgF2bZXgNFlQrARUy/zgWhIpaOyFIwc='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-4/Zjfjy+QUDXMUOGDvs4k0zoGNMgLbRsiRTF6uall2U=' 'sha256-CKKAApefor8VN9iJa1L7vG/DUojYAdO6bIB+J1AlD8E='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1110,7 +1110,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '26 (20 Nov 2026, 19:35)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '27 (20 Nov 2026, 23:06)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -4352,16 +4352,21 @@ const ancKids = id => state.nodes.filter(n => n.anchor === id);
 function ancDesc(id, out = new Set()) { for (const n of ancKids(id)) if (!out.has(n.id) && n.id !== id) { out.add(n.id); ancDesc(n.id, out); } return out; }
 const ancLetGo = n => { delete n.anchor; delete n.ox; delete n.oy; };
 // Every anchored card where its anchor puts it now (anchors first, for a chain). Gives the ids of the cards it moved.
+// A card that has moved while its anchor stayed put was moved itself (dragged, nudged, lined up...): it keeps that
+// new place beside its anchor rather than being put back. ancLast remembers where each was when last placed.
+const ancLast = new Map();
 function ancTidy(noFit) {
   if (!ancOn() || !state.nodes.some(n => n.anchor)) return [];
   const byId = new Map(state.nodes.map(n => [n.id, n])), done = new Set(), moved = [];
   const place = (n, path) => {
     if (done.has(n.id)) return; done.add(n.id);
     const a = byId.get(n.anchor);
-    if (!a || path.has(a.id) || n.on || slvOf(n.id)) { ancLetGo(n); return; }   // its card gone, a loop, or it's in a line or a sleeve now
+    if (!a || path.has(a.id) || n.on || slvOf(n.id)) { ancLetGo(n); ancLast.delete(n.id); return; }   // its card gone, a loop, or it's in a line or a sleeve now
     if (a.anchor) place(a, new Set([...path, a.id]));
-    const x = a.x + n.ox, y = a.y + n.oy;
-    if (n.x !== x || n.y !== y) { n.x = x; n.y = y; moved.push(n.id); }
+    const was = ancLast.get(n.id);
+    if (was && was.ax === a.x && was.ay === a.y && (was.x !== n.x || was.y !== n.y)) { n.ox = n.x - a.x; n.oy = n.y - a.y; }   // moved itself: its new place beside its anchor
+    else { const x = a.x + n.ox, y = a.y + n.oy; if (n.x !== x || n.y !== y) { n.x = x; n.y = y; moved.push(n.id); } }
+    ancLast.set(n.id, {ax: a.x, ay: a.y, x: n.x, y: n.y});
   };
   for (const n of state.nodes) if (n.anchor) place(n, new Set([n.id]));
   if (moved.length && !noFit) ancFit(moved);
