@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-thdLIRycjP/PogygvRhE1KkVBD7A4ow3+ZN3PbOiKBs=' 'sha256-fZq9nBnw8MK+XDhBE8JW8EgAAMziTx1l5t8DQdjzhd4='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-FLfPsPSnvf0uIex1Fr1M9GWe8SnMmPG5ZoclAPXupPo=' 'sha256-IVMKEBcLKrp68ocUFEDZciHUTPePU5L/zkBCQXzzt+E='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -153,6 +153,7 @@ kbd{font-family:var(--ui);font-size:11px;background:var(--panel-2);border:1px so
 .glabel{position:absolute;height:22px;line-height:22px;padding:0 10px;border-radius:11px;font-size:12px;font-weight:600;color:#fff;background:var(--gc);pointer-events:auto;cursor:pointer;white-space:nowrap}
 .gpatch.suggest .glabel{cursor:default}
 #drawRect.marquee{border-radius:6px;border-color:var(--accent);background:rgba(59,130,246,.06)}
+.card.kout{outline:3px solid var(--kout);outline-offset:3px}   /* a colour in the key set to stand out: an outline just outside the card */
 .card.msel{outline:2px solid var(--accent);outline-offset:3px}
 #sketch g.msel{filter:drop-shadow(0 0 1.5px var(--accent)) drop-shadow(0 0 1.5px var(--accent))}   /* drawings picked with the box */
 .sk-text.msel{outline:2px solid var(--accent);outline-offset:3px}
@@ -1110,7 +1111,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '29 (20 Nov 2026, 23:36)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '30 (20 Nov 2026, 23:45)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -1951,7 +1952,7 @@ function keyAdd(key, c, label = 'Unlabelled', hide = true) {   // (one joining b
 // colour used on the map is added.
 function normKey(arr, used) {
   const key = [];
-  for (const k of Array.isArray(arr) ? arr : []) { const c = safeColor(k && k.color, ''); if (c && !key.some(x => x.color.toLowerCase() === c.toLowerCase())) key.push({color: c, label: String(k.label ?? '').slice(0, 60), ...(k.hide ? {hide: true} : {})}); }
+  for (const k of Array.isArray(arr) ? arr : []) { const c = safeColor(k && k.color, ''); if (c && !key.some(x => x.color.toLowerCase() === c.toLowerCase())) key.push({color: c, label: String(k.label ?? '').slice(0, 60), ...(k.hide ? {hide: true} : {}), ...(safeColor(k.outline, '') ? {outline: safeColor(k.outline).toLowerCase()} : {})}); }
   const out = key.length >= 2 ? key : keyFrom([...prefs.palette]);
   for (const c of used) keyAdd(out, c);
   return out;
@@ -1982,6 +1983,7 @@ function shown(c) {
 }
 const subText = '#8a8f98';   // its fainter text
 const isSub = c => !!c && keyAt(c) === SUB;
+const keyOut = c => { const i = keyAt(c); return i >= 0 && ckey()[i].outline || ''; };   // a colour whose cards have an outline (to stand out), and its colour
 // The slider (Appearance, "Greyed-out cards: faded") sets how grey these cards are: at 0% they look exactly like white
 // cards; at the default 55% they have the full grey background, faint text and a faded tag colour; in between, in
 // proportion.
@@ -2635,6 +2637,22 @@ const inBox = (x, y) => { const a = boxArea(); return !a || (x >= a.x0 && x <= a
 function clampToBox(x, y, w, h) {   // the top-left corner of something w by h, moved so it's all inside the box
   const a = boxArea(); if (!a) return {x, y};
   return {x: Math.max(a.x0, Math.min(x, a.x1 - w)), y: Math.max(a.y0, Math.min(y, a.y1 - h))};
+}
+// A card dragged past a box's left or right wall, or its floor, makes the box bigger that way when it's let go (that
+// wall then lies folded down, as when its edge is dragged). While the drag lasts only the lid's edge along the top
+// holds it. (No more than the box can grow: 4 widths each way.)
+let boxLoose = false;
+function boxFitCards(ids) {
+  const c = holderCard(), a = boxArea(); if (!c || !a || flatKey() || REF) return false;
+  let x0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const id of ids) { const b = cardBox(id); if (b) { x0 = Math.min(x0, b.x); x1 = Math.max(x1, b.x + b.w); y1 = Math.max(y1, b.y + b.h); } }
+  if (x1 === -Infinity) return false;
+  const x = boxExt(c), cap = 4 * frameRect().x1;
+  const g = {l: Math.min(cap, x.l + Math.max(0, Math.ceil(a.x0 - x0))), r: Math.min(cap, x.r + Math.max(0, Math.ceil(x1 - a.x1))), b: Math.min(cap, x.b + Math.max(0, Math.ceil(y1 - a.y1)))};
+  if (g.l === x.l && g.r === x.r && g.b === x.b) return false;
+  c.boxExt = g; flapA = Math.PI / 2; setFlap(flapA);
+  for (const id of ids) { const n = getNode(id); if (n) { const q = at2(n); put2(n, q.x, q.y); } }   // (past the most a box can grow: back inside)
+  return true;
 }
 const boxPoint = P => { const a = boxArea(); return a ? [clamp(P[0], a.x0, a.x1), clamp(P[1], a.y0, a.y1)] : P; };
 let frameSig = '';
@@ -3529,7 +3547,10 @@ const flatKey = () => flatOn() ? 's2' : state.settings.tiers ? 't2' : '';
 const at2 = n => { const k = flatKey(); return k && n[k] ? {x: n[k].x - 112, y: n[k].y - 50} : {x: n.x, y: n.y}; };
 function put2(n, x, y) {
   const k = flatKey();
-  if (!k && holder()) { const el = cardEls.get(n.id), c = clampToBox(x, y, el ? el.offsetWidth : 224, el ? el.offsetHeight : 60); x = c.x; y = c.y; }   // inside a box: kept inside it
+  if (!k && holder()) {   // inside a box: kept inside it (while it's dragged, only below the lid: see boxFitCards)
+    if (boxLoose) { const a = boxArea(); if (a) y = Math.max(a.y0, y); }
+    else { const el = cardEls.get(n.id), c = clampToBox(x, y, el ? el.offsetWidth : 224, el ? el.offsetHeight : 60); x = c.x; y = c.y; }
+  }
   if (k === 's2' && n.s2 && n.s2f) n.s2f = {x: n.s2f.x + x + 112 - n.s2.x, y: n.s2f.y + y + 50 - n.s2.y, z: 0};   // (Spatialised 2D: moved in its full layout as well)
   if (k) n[k] = {x: x + 112, y: y + 50, z: 0}; else { n.x = x; n.y = y; }
 }
@@ -3919,9 +3940,9 @@ function renderMap() {
     const dim = !lit(n) || (fs && !fs.has(n.id));
     const hop = three ? hopsNow.get(n.id) : undefined, near = hop !== undefined && hop <= 2;   // 3D: first and second-order cards stay sharp
     const rl = n.on && ridersLive() ? getLink(n.on) : null;   // in a line: small, edged in the line's colour
-    const cls = 'card' + (cardText(n.color) === '#ffffff' ? ' dark' : '') + (n.inner ? ' holds' : '') + (isSel('node', n.id) ? ' selected' : '') + (multiSel.has(n.id) ? ' msel' : '') + (rl ? ' rider' : '') + (dim ? ' dim' : '') + (findHit(n) ? ' hit' : findHitIn(n) ? ' hitIn' : '') + TIER_CLS[tierFade(n, tc)] + (hop === 1 ? ' ring1' : '') + ((REF || SAT) && refIds.has(n.id) ? ' carried' : '');
+    const cls = 'card' + (cardText(n.color) === '#ffffff' ? ' dark' : '') + (n.inner ? ' holds' : '') + (isSel('node', n.id) ? ' selected' : '') + (multiSel.has(n.id) ? ' msel' : '') + (rl ? ' rider' : '') + (dim ? ' dim' : '') + (findHit(n) ? ' hit' : findHitIn(n) ? ' hitIn' : '') + TIER_CLS[tierFade(n, tc)] + (hop === 1 ? ' ring1' : '') + ((REF || SAT) && refIds.has(n.id) ? ' carried' : '') + (keyOut(n.color) ? ' kout' : '');
     const strip = primaryTag(n) ? cardStrip(n.color, tagColor(primaryTag(n))) : 'var(--card-line)';
-    h += `<div class="${cls}" data-id="${esc(n.id)}" style="left:${p.x}px;top:${p.y}px;${rl ? `--rc:${rl.color ? shown(rl.color) : 'var(--link)'};` : n.w ? `width:${n.w}px;` : ''}${three ? `transform:scale(${p.k});transform-origin:0 0;z-index:${isSel('node', n.id) ? 5000 : 1000 - Math.round(p.d / 4)};--op:${near ? 1 : depthFade(p.d)};${isSel('node', n.id) || near ? '' : `filter:blur(${depthBlur(p.d)}px);`}` : `z-index:${cardZ(n)};`}background:${cardFill(n.color)};color:${cardText(n.color)};--strip:${strip}">`;
+    h += `<div class="${cls}" data-id="${esc(n.id)}" style="${keyOut(n.color) ? `--kout:${keyOut(n.color)};` : ''}left:${p.x}px;top:${p.y}px;${rl ? `--rc:${rl.color ? shown(rl.color) : 'var(--link)'};` : n.w ? `width:${n.w}px;` : ''}${three ? `transform:scale(${p.k});transform-origin:0 0;z-index:${isSel('node', n.id) ? 5000 : 1000 - Math.round(p.d / 4)};--op:${near ? 1 : depthFade(p.d)};${isSel('node', n.id) || near ? '' : `filter:blur(${depthBlur(p.d)}px);`}` : `z-index:${cardZ(n)};`}background:${cardFill(n.color)};color:${cardText(n.color)};--strip:${strip}">`;
     h += `<div class="handle" title="Drag onto another card to connect"></div>`;
     if (!REF && !SAT) h += `<div class="wgrip" title="Drag to make this card wider or narrower (double-click: the usual width)"></div>`;
     if (!rl) h += cardMarks(n);   // its marks, in its top-right corner (see MARK_ICONS)
@@ -10062,6 +10083,7 @@ function keyEditor() {
       <input type="text" class="catname" value="${esc(k.label)}" data-ckl placeholder="Label">
       <span class="muted" title="Cards in this colour">${counts.get(k.color.toLowerCase()) || 0}</span>
       <label class="chk" title="Show this colour in the key on the map (untick: it's just for its cards)" style="margin:0 2px"><input type="checkbox" data-ckshow ${k.hide ? '' : 'checked'}></label>
+      <label class="chk" title="An outline round its cards, to make them stand out" style="margin:0 2px;white-space:nowrap"><input type="checkbox" data-ckout ${k.outline ? 'checked' : ''}>Outline</label>${k.outline ? `<input type="color" value="${k.outline}" data-ckoc title="The outline's colour">` : ''}
       ${i >= 2 ? `<button class="btn icon" data-ckdel title="Take this colour out (its cards go to Base)">${ICON_X}</button>` : '<span class="ckgap"></span>'}</div>`).join('')}
     <div style="margin-top:8px"><button class="btn" data-ckadd>+ Add a colour</button></div></div>`;
 }
@@ -10084,9 +10106,16 @@ document.addEventListener('input', e => {
   if (c.toLowerCase() === old.toLowerCase()) return;
   pushUndo('ckc' + i); key[i].color = c; recolourAll(old, c); changed(); renderKeyBox();
 });
+document.addEventListener('input', e => {   // an outline's colour
+  const r = e.target.closest && e.target.closest('.ckey .ckrow'); if (!r || !e.target.matches('[data-ckoc]')) return;
+  const i = +r.dataset.ck, k = ckey()[i]; if (!k) return;
+  pushUndo('ckoc' + i); k.outline = safeColor(e.target.value, '#f08c00').toLowerCase(); changed(); renderKeyBox();
+});
 document.addEventListener('change', e => {
   const r = e.target.closest && e.target.closest('.ckey .ckrow'); if (!r) return;
   if (e.target.matches('[data-ckc]')) { keyRefresh(); return; }
+  if (e.target.matches('[data-ckout]')) { const k = ckey()[+r.dataset.ck]; if (k) { pushUndo(); if (e.target.checked) k.outline = '#f08c00'; else delete k.outline; changed(); keyRefresh(); } return; }
+  if (e.target.matches('[data-ckoc]')) { keyRefresh(); return; }
   if (e.target.matches('[data-ckshow]')) { const k = ckey()[+r.dataset.ck]; if (k) { pushUndo(); if (e.target.checked) delete k.hide; else k.hide = true; changed(); keyRefresh(); } return; }
   if (!e.target.matches('[data-ckl]')) return;
   const k = ckey()[+r.dataset.ck], v = e.target.value.trim().slice(0, 60); if (!k || v === k.label) return;
@@ -10124,7 +10153,7 @@ document.addEventListener('drop', e => {
 function renderKeyBox() {
   const box = $('#ckBox'); if (!box || typeof state === 'undefined' || !state) return;
   if (!state.settings.keyBox || REF || !$('#settings').hidden || !$('#help').hidden) { if (!box.hidden) { box.hidden = true; updateBlurClip(); } return; }
-  const html = '<div class="label">Colour key</div>' + ckey().map((k, i) => k.hide ? '' : `<div class="ckb" data-ki="${i}"><i style="background:${shown(k.color)}"></i><span>${esc(k.label || '–')}</span></div>`).reverse().join('');
+  const html = '<div class="label">Colour key</div>' + ckey().map((k, i) => k.hide ? '' : `<div class="ckb" data-ki="${i}"><i style="background:${shown(k.color)}${k.outline ? `;outline:2px solid ${k.outline};outline-offset:1px` : ''}"></i><span>${esc(k.label || '–')}</span></div>`).reverse().join('');
   const nomm = $('#minimap').hidden, was = box.hidden;
   if (box._h !== html) { box.innerHTML = html; box._h = html; }
   box.classList.toggle('nomm', nomm); box.hidden = false;
@@ -10745,9 +10774,10 @@ canvas.addEventListener('pointermove', e => {
     const p = toWorld(e);
     if (drag.set) { const o = drag.set.find(o => o.n === n), sp = snapAt(drag.el, p.x - drag.ox, p.y - drag.oy, e.shiftKey); moveSet(drag.set, sp.x - o.x, sp.y - o.y); boxDragOver(drag, p); return; }   // the card held snaps; the others keep their places around it   // a picked card: they all move
     const sp = snapAt(drag.el, p.x - drag.ox, p.y - drag.oy, e.shiftKey);
-    put2(n, sp.x, sp.y);
+    boxLoose = true; put2(n, sp.x, sp.y);
     holdForDrag([n.id]); placeCard(drag.el, n);
     for (const id of ancTidy(true)) { const el = cardEls.get(id), m = getNode(id); if (el && m) placeCard(el, m); }   // (the cards anchored to it come too)
+    if (ancOn() && (n.anchor || ancKids(n.id).length)) ancTethers();   // (and the dashed lines to them)
     linksSoon();
     slvDragOver(drag, p);   // over a sleeve: it makes room
     boxDragOver(drag, p);   // over the middle of a shoebox for half a second: it's outlined, and letting go puts the card inside
@@ -10867,6 +10897,7 @@ function putInBox(ids, boxId, heldId, p) {
     'Open the box', () => { if (!diveBusy() && getNode(boxId)) enterCard(boxId); });
 }
 function moveSet(set, dx, dy) {
+  boxLoose = true;
   holdForDrag(set.filter(o => o.n).map(o => o.n.id));
   let drew = false;
   for (const o of set) {
@@ -10885,7 +10916,7 @@ function isDoubleClick(target, e) {
 }
 canvas.addEventListener('pointerup', e => {
   if (!drag) return;
-  const d = drag; drag = null;
+  const d = drag; drag = null; boxLoose = false;
   riderFree = d.type === 'node' && d.moved && !d.set ? d.id : '';   // (a card just let go stays where it was dropped until riderDrop has looked)
   endDragHold(); riderFree = '';
   canvas.classList.remove('panning');
@@ -10920,7 +10951,7 @@ canvas.addEventListener('pointerup', e => {
     if (words) toast(`${words} picked: drag any of them to move them together. Click the map or press Esc to let go.`);
     return;
   }
-  if (d.type === 'set') { if (d.moved) { slvAfterSet(d.set); ancKeep(d.set.filter(o => o.n).map(o => o.n.id)); markDirty(); renderMap(); syncBlur(); } return; }
+  if (d.type === 'set') { if (d.moved) { slvAfterSet(d.set); ancKeep(d.set.filter(o => o.n).map(o => o.n.id)); boxFitCards(d.set.filter(o => o.n).map(o => o.n.id)); markDirty(); renderMap(); syncBlur(); } return; }
   if (d.type === 'node') {
     const into = d.boxArmed; boxDropClear(d);
     if (d.moved && into && getNode(into)) {   // let go over an outlined shoebox: in it goes (the move and this are one undo step)
@@ -10929,7 +10960,7 @@ canvas.addEventListener('pointerup', e => {
       return;
     }
     if (d.moved) {
-      if (d.set) { slvAfterSet(d.set); ancKeep(d.set.filter(o => o.n).map(o => o.n.id)); markDirty(); renderMap(); return; }
+      if (d.set) { slvAfterSet(d.set); ancKeep(d.set.filter(o => o.n).map(o => o.n.id)); boxFitCards(d.set.filter(o => o.n).map(o => o.n.id)); markDirty(); renderMap(); return; }
       const inSlv = d.slv && slvDrop(d), rn = getNode(d.id);
       if (rn && !inSlv) ancKeep([rn.id]);
       if (inSlv) { if (rn) riderOut(rn); renderMap(); }   // into a sleeve, out of one, or to another spot in it
@@ -10954,7 +10985,8 @@ canvas.addEventListener('pointerup', e => {
           toast([joined.length ? `Joined ${joined.map(x => `“${x}”`).join(', ')}` : '', left.length ? `Left ${left.map(x => `“${x}”`).join(', ')}` : ''].filter(Boolean).join('. ') + '.', true);
         }
       }
-      markDirty(); renderMinimap(); return;
+      if (getNode(d.id) && boxFitCards([d.id, ...(ancOn() ? ancDesc(d.id) : [])])) renderMap();   // (past a wall of its box: the box grows to take it in)
+      ancTethers(); markDirty(); renderMinimap(); return;
     }
     if (d.chip) { openTag(d.chip.dataset.tag); return; }
     const n = getNode(d.id); if (!n) return;
@@ -10979,7 +11011,7 @@ canvas.addEventListener('pointerup', e => {
     } else renderMap();
   }
 });
-canvas.addEventListener('pointercancel', () => { boxDropClear(drag); slvUndrag(drag); drag = null; tempLink = null; sketchDraft = null; canvas.classList.remove('panning'); renderMap(); });
+canvas.addEventListener('pointercancel', () => { boxLoose = false; boxDropClear(drag); slvUndrag(drag); drag = null; tempLink = null; sketchDraft = null; canvas.classList.remove('panning'); renderMap(); });
 canvas.addEventListener('scroll', () => { canvas.scrollTop = 0; canvas.scrollLeft = 0; });   // the map never scrolls (focusing something near an edge could make the browser try)
 canvas.addEventListener('wheel', e => {
   e.preventDefault();
