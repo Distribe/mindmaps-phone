@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-sKyw1NL8fM7eiP1HRZiuVeY0ErtkSqbeCZaejsvWXnM=' 'sha256-0xKytnBpq95nV6zEG7WqAslt1NGOKKAiP/0yAe5y9+M='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/oGBDeCf7jHIyEQukHgzpvsk5Mg+Uw053b5ABdZSpbU=' 'sha256-Oews+zDFJNQdfgF2bZXgNFlQrARUy/zgWhIpaOyFIwc='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -398,6 +398,10 @@ body.refOn{--top0:calc(var(--app-top) + var(--ref-h,0px) + var(--refbar-h))}
 #sketchText .sk-text.picked{cursor:move}
 #sketch .fillhit{fill:transparent;stroke:none}
 #sketchSel{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none;z-index:4}
+#ancSel{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none;z-index:4}
+#ancSel line{stroke:#4a6699;fill:none}
+.ancrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:4px 0 8px;font-size:var(--t-small)}
+#canvas.ancArm,#canvas.ancArm .card{cursor:crosshair}
 #sketchSel .box{fill:none;stroke:#4a6699;stroke-dasharray:6 4}
 #sketchSel .h{fill:#fff;stroke:#4a6699;pointer-events:all}
 #sketchSel .h[data-skh="rot"]{cursor:grab}
@@ -901,7 +905,7 @@ body.drop7 #mapName{min-width:60px}
 <body>
 
 <div id="canvas">
-  <div id="world"><div id="frame" hidden></div><div id="groups"></div><svg id="sleeves"></svg><svg id="links"></svg><svg id="sketch"></svg><div id="sketchText"></div><div id="cards"></div><svg id="sketchSel"></svg><div id="drawRect" hidden></div></div><div id="outer"></div>
+  <div id="world"><div id="frame" hidden></div><div id="groups"></div><svg id="sleeves"></svg><svg id="links"></svg><svg id="sketch"></svg><div id="sketchText"></div><div id="cards"></div><svg id="sketchSel"></svg><svg id="ancSel"></svg><div id="drawRect" hidden></div></div><div id="outer"></div>
   <div id="mapHint"></div>
 </div>
 <canvas id="space" hidden></canvas>
@@ -1106,7 +1110,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '25 (20 Nov 2026, 12:04)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '26 (20 Nov 2026, 19:35)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -2211,6 +2215,7 @@ function renderHelp() {
         <li><b>Spaces:</b> tick "Holds a space inside" when editing a card and it becomes a box with a handle underneath. Click the handle to lift the lid and zoom into the card's own page; click the open lid along the top (or Esc) to come back out. Inside, the top-left box shows the box itself (its title, summary and notes; Edit changes them), whichever card you pick. 2D only.</li>
         <li><b>Connect:</b> drag the dot on a card's right edge onto another card. Lines are one way (→), both ways (↔), no arrow (—) or a close link (═, a double line for tightly bound ideas). Any line can also be curved (it finds its way round the cards; drag its dot to steer it) and subtle (lighter, and not part of the core structure, so Spatialise and clustering ignore it). Click a line to edit it (Reverse direction is just under its two cards); hovering shows its description.</li>
         <li><b>Connection descriptions:</b> on a card, the small arrow beside a connection opens its description.</li>
+        <li><b>Anchors:</b> right-click a card &gt; Anchor it to the card above (or to a card&hellip;, then click it). It then moves with that card, keeping its place beside it, including when a sleeve's order changes. Let go of it from the same menu or its panel.</li>
         <li><b>Move around:</b> drag the background; scroll to zoom; <kbd>F</kbd> fits everything; click the minimap to jump.</li>
         <li><b>Spatialise:</b> click the button with three linked dots. A slider drops down: slide right and the cards move so linked ideas sit closer together (keeping the map's overall spread), slide left to go back. Fix layout keeps what's on screen (one Undo puts it back); Cancel or Esc puts the cards back.</li>
         <li><b>Groups:</b> a tag can be shown as a shaded area around its cards. Draw one with the dashed-box button (drag a box, name it: the name becomes a tag on those cards); Ctrl-drag a card into or out of an area to move it between groups (a plain drag keeps its groups, and the area reshapes around it). The Groups tick box shows or hides them; click a group's name to rename, recolour or switch it off. Spatialise can find clusters for you (Find clusters, Use tags, Clustering strength) and turn them into groups when you press Fix layout.</li>
@@ -2440,12 +2445,13 @@ function normalize(o) {
     ...(n.on ? {on: String(n.on), onT: isFinite(+n.onT) ? clamp(+n.onT, 0, 1) : 0.5, ...(+n.onR > 0 ? {onR: +n.onR} : {})} : {}),   // in a line: the line's id, and how far along it (see riderTidy)
     ...(n.noPrimary && Array.isArray(n.tags) && n.tags.length ? {noPrimary: true} : {}),   // all its tags are secondary
     ...(n.inner && typeof n.inner === 'object' ? {inner: normLevel(n.inner)} : {}),   // a space inside the card, with its own cards and links
+    ...(n.anchor && isFinite(+n.ox) && isFinite(+n.oy) ? {anchor: String(n.anchor), ox: Math.round(+n.ox), oy: Math.round(+n.oy)} : {}),   // anchored to a card beside it (see ancTidy)
     ...(n.boxExt && n.inner ? {boxExt: n.boxExt === true ? true : {l: Math.max(0, +n.boxExt.l || 0), r: Math.max(0, +n.boxExt.r || 0), b: Math.max(0, +n.boxExt.b || 0)}} : {})   // made bigger: how far out each side goes (see boxExt)
   }));
   const normLinks = (arr, ns) => { const ids = new Set(ns.map(n => n.id));
     return (Array.isArray(arr) ? arr : []).filter(l => l && ids.has(String(l.from)) && ids.has(String(l.to)) && l.from !== l.to).map(normLink); };
-  const normLevel = o2 => { const ns = normNodes(o2.nodes); return {nodes: ns, links: normLinks(o2.links, ns), sketches: normSketches(o2.sketches), ...(+o2.w > 0 ? {w: Math.round(+o2.w)} : {})}; };   // (w: the space's size)
-  s.nodes = normNodes(o.nodes);
+  const normLevel = o2 => { const ns = ancPrune(normNodes(o2.nodes)); return {nodes: ns, links: normLinks(o2.links, ns), sketches: normSketches(o2.sketches), ...(+o2.w > 0 ? {w: Math.round(+o2.w)} : {})}; };   // (w: the space's size)
+  s.nodes = ancPrune(normNodes(o.nodes));
   const addTags = ns => { for (const nd of ns) { for (const t of nd.tags)
     if (!s.tags.some(x => x.name === t)) s.tags.push({name: t, color: TAG_COLORS[s.tags.length % TAG_COLORS.length]});
     if (nd.inner) addTags(nd.inner.nodes); } };
@@ -3901,7 +3907,7 @@ async function addRider(l) {   // the connection's panel: a new card in the line
 }
 function renderMap() {
   if (sceneWait()) return;
-  riderTidy();
+  riderTidy(); ancTidy();
   zTiers = [...new Set(state.nodes.map(n => tierRank(n.color)))].sort((a, b) => a - b);
   if (flatOn() && (spaceSeed() || state.settings.space2key !== spaceKey()) && !sp3.running && !sp3s) spaceRefineSoon();
   const fs = focusSet(), three = view3();
@@ -3940,7 +3946,8 @@ function renderMap() {
     for (const n of state.nodes) { const el = cardEls.get(n.id), q = at2(n); if (el) { el.style.left = q.x + 'px'; el.style.top = q.y + 'px'; } }
   }
   slvTidy(); renderSleeves();
-  renderLinks();
+  { const mv = ancTidy(); if (mv.length) ancEls(mv); }   // (a sleeve laid out again: the cards anchored to its cards follow)
+  renderLinks(); ancTethers();
   applyView(); renderTierBar();
   if (spaceOn() || !$('#space').hidden) drawSpace();
 }
@@ -4243,6 +4250,7 @@ function makeSleeve(ids, at) {
   if (!slvOn()) { toast('Switch to the 2D view to use sleeves.'); return; }
   pushUndo();
   const bs = [...ids].map(id => ({id, b: cardBox(id)})).filter(o => o.b);
+  for (const id of ids) { const n = getNode(id); if (n && n.anchor) ancLetGo(n); }   // (in a sleeve: placed by it, not by an anchor)
   for (const v of levelSleeves()) if (v.slots.some(x => x.some(id => ids.has(id)))) { for (const id of ids) slvTake(v, id); slvFlow(v); }   // (out of any other sleeve)
   let dir = 'down', x = at ? at.x : 0, y = at ? at.y : 0;
   if (!bs.length) {   // empty: the nearest spot (in rings 40px apart) where it's clear of cards and other sleeves
@@ -4312,6 +4320,7 @@ function slvDragOver(d, p) {
     for (const [c, q] of L.pos) if (c !== id) { const n = getNode(c); if (n) { n.x = q.x; n.y = q.y; } }
   }
   for (const c of d.slv.home.keys()) { const el = cardEls.get(c), n = getNode(c); if (el && n) { el.classList.add('slvSlide'); el.style.left = n.x + 'px'; el.style.top = n.y + 'px'; } }
+  if (ancOn()) { ancTidy(true); const ks = new Set(); for (const c of d.slv.home.keys()) for (const k of ancDesc(c)) ks.add(k); ancEls(ks, true); }   // (and the cards anchored to them)
   renderSleeves(over); linksSoon();
 }
 // Let go: the card leaves the sleeve it was in (if any) and goes where it was shown going; both are laid out again.
@@ -4319,7 +4328,7 @@ function slvDrop(d) {
   const id = d.id, t = d.slv.t, from = slvOf(id), to = t && getSleeve(t.sid);
   if (!from && !to) return false;
   if (from) slvTake(from, id);
-  if (to) to.slots = slvPut(to.slots, id, t);
+  if (to) { to.slots = slvPut(to.slots, id, t); const nn = getNode(id); if (nn && nn.anchor) ancLetGo(nn); }   // (in a sleeve: placed by it, not by an anchor)
   for (const v of new Set([from, to])) if (v) slvFlow(v);
   return true;
 }
@@ -4327,6 +4336,97 @@ function slvUndrag(d) {   // a drag cancelled: everything back where it was
   if (!d || !d.slv) return;
   for (const [c, q] of d.slv.home) { const n = getNode(c); if (n) { n.x = q.x; n.y = q.y; } }
 }
+// Anchored cards. A card can be anchored to another card on the same level (anchor: that card's id; ox, oy: where it
+// sits from that card's top-left corner). Wherever the anchor goes - dragged, laid out by a sleeve (as when its order
+// changes), undone - the anchored card follows, keeping its place beside it; and cards anchored to it follow it in turn.
+// Moving an anchored card yourself just gives it a new place beside its anchor. A card in a sleeve or a line is placed
+// by that instead, so it can't be anchored. Anchors work in the plain 2D view (the other views lay cards out themselves).
+let ancArm = null;   // "Anchor to a card…" chosen: the cards waiting for the next card clicked
+const ancOn = () => !flatKey() && !state.settings.dim3 && !state.settings.space && !spatial;
+function ancPrune(ns) {   // (a map being opened: an anchor to a card that isn't beside it on its level is let go)
+  const ids = new Set(ns.map(n => n.id));
+  for (const n of ns) if (n.anchor && (!ids.has(n.anchor) || n.anchor === n.id)) { delete n.anchor; delete n.ox; delete n.oy; }
+  return ns;
+}
+const ancKids = id => state.nodes.filter(n => n.anchor === id);
+function ancDesc(id, out = new Set()) { for (const n of ancKids(id)) if (!out.has(n.id) && n.id !== id) { out.add(n.id); ancDesc(n.id, out); } return out; }
+const ancLetGo = n => { delete n.anchor; delete n.ox; delete n.oy; };
+// Every anchored card where its anchor puts it now (anchors first, for a chain). Gives the ids of the cards it moved.
+function ancTidy(noFit) {
+  if (!ancOn() || !state.nodes.some(n => n.anchor)) return [];
+  const byId = new Map(state.nodes.map(n => [n.id, n])), done = new Set(), moved = [];
+  const place = (n, path) => {
+    if (done.has(n.id)) return; done.add(n.id);
+    const a = byId.get(n.anchor);
+    if (!a || path.has(a.id) || n.on || slvOf(n.id)) { ancLetGo(n); return; }   // its card gone, a loop, or it's in a line or a sleeve now
+    if (a.anchor) place(a, new Set([...path, a.id]));
+    const x = a.x + n.ox, y = a.y + n.oy;
+    if (n.x !== x || n.y !== y) { n.x = x; n.y = y; moved.push(n.id); }
+  };
+  for (const n of state.nodes) if (n.anchor) place(n, new Set([n.id]));
+  if (moved.length && !noFit) ancFit(moved);
+  return moved;
+}
+function ancFit(ids) {   // inside a box: if anchored cards now run past its right wall (or its floor), the box gets bigger that way
+  const c = holderCard(), ar = boxArea(); if (!c || !ar || REF) return;
+  let x1 = -Infinity, y1 = -Infinity;
+  for (const id of ids) { const n = getNode(id), b = cardBox(id); if (n) { x1 = Math.max(x1, n.x + (b ? b.w : 224)); y1 = Math.max(y1, n.y + (b ? b.h : 60)); } }
+  const x = boxExt(c), dx = Math.ceil(x1 + 8 - ar.x1), dy = Math.ceil(y1 + 8 - ar.y1);
+  if (dx > 0 || dy > 0) c.boxExt = {...x, r: x.r + Math.max(0, dx), b: x.b + Math.max(0, dy)};
+}
+function ancEls(ids, slide) {   // their cards on screen, where they are now (not one being dragged: it's placed by the drag)
+  for (const id of ids) { const el = cardEls.get(id), n = getNode(id); if (!el || !n || el._p0) continue; if (slide) el.classList.add('slvSlide'); el.style.left = n.x + 'px'; el.style.top = n.y + 'px'; }
+}
+function ancKeep(ids) {   // cards moved by hand: an anchored one keeps its new place beside its anchor (unless that moved with it)
+  const set = new Set(ids);
+  for (const id of set) { const n = getNode(id), a = n && n.anchor && getNode(n.anchor); if (a && !set.has(a.id)) { n.ox = Math.round(n.x - a.x); n.oy = Math.round(n.y - a.y); } }
+}
+function ancSet(ids, to) {   // anchor these cards to that one
+  const a = getNode(to); if (!a) return;
+  const ok = [], skipped = [];
+  for (const id of ids) { const n = getNode(id); if (!n || id === to) continue;
+    if (slvOf(id) || n.on || ancDesc(id).has(to)) skipped.push(n); else ok.push(n); }
+  if (!ok.length) { toast(skipped.length ? 'That can’t be anchored there: a card in a sleeve or a line can’t be anchored, and a card can’t be anchored to one that’s anchored to it.' : 'Pick a different card to anchor to.'); return; }
+  pushUndo();
+  for (const n of ok) { n.anchor = a.id; n.ox = Math.round(n.x - a.x); n.oy = Math.round(n.y - a.y); }
+  changed();
+  toast(`${ok.length === 1 ? 'Anchored' : ok.length + ' cards anchored'} to “${a.title || 'Untitled'}”: ${ok.length === 1 ? 'it moves' : 'they move'} with it now.${skipped.length ? ` (${skipped.length} in a sleeve or a line left as ${skipped.length === 1 ? 'it was' : 'they were'}.)` : ''}`, true);
+}
+function ancAbove(ids) {   // each of these cards anchored to the card just above it (for a column under a step: each to the one above)
+  const pairs = [];
+  for (const id of ids) {
+    const n = getNode(id), b = cardBox(id); if (!n || !b || slvOf(id) || n.on) continue;
+    const no = ancDesc(id); let best = null, bb = -Infinity;
+    for (const m of state.nodes) { if (m.id === id || no.has(m.id)) continue; const k = cardBox(m.id); if (!k) continue;
+      if (k.x < b.x + b.w && k.x + k.w > b.x && k.y + k.h <= b.y + 10 && k.y + k.h > bb) { bb = k.y + k.h; best = m; } }
+    if (best) pairs.push([n, best]);
+  }
+  if (!pairs.length) { toast('There’s no card above to anchor to (a card in a sleeve or a line can’t be anchored).'); return; }
+  pushUndo();
+  for (const [n, a] of pairs) { n.anchor = a.id; n.ox = Math.round(n.x - a.x); n.oy = Math.round(n.y - a.y); }
+  changed();
+  toast(pairs.length === 1 ? `Anchored to “${pairs[0][1].title || 'Untitled'}” above it: it moves with it now.` : `${pairs.length} cards anchored, each to the card above it: they move with it now.`, true);
+}
+function ancClear(ids) {
+  const ns = [...ids].map(getNode).filter(n => n && n.anchor); if (!ns.length) return;
+  pushUndo(); ns.forEach(ancLetGo); changed();
+  toast(ns.length === 1 ? 'No longer anchored: it stays where it is.' : `${ns.length} cards no longer anchored: they stay where they are.`, true);
+}
+function ancTethers() {   // the picked card's anchor, and the cards anchored to it: a dashed line to each
+  const svg = $('#ancSel'); if (!svg) return;
+  const ids = new Set([...(selNode() ? [selNode().id] : []), ...multiSel]); let h = '';
+  if (ancOn() && ids.size) {
+    const seen = new Set(), line = (p, q) => { const k = p + '>' + q, a = cardBox(p), b = cardBox(q); if (seen.has(k) || !a || !b) return ''; seen.add(k);
+      return `<line x1="${a.cx}" y1="${a.cy}" x2="${b.cx}" y2="${b.cy}" stroke-width="${1.5 / view.s}" stroke-dasharray="${5 / view.s} ${4 / view.s}"/>`; };
+    for (const id of ids) { const n = getNode(id); if (!n) continue; if (n.anchor) h += line(id, n.anchor); for (const k of ancKids(id)) h += line(k.id, id); }
+  }
+  svg.innerHTML = h;
+}
+const ancRow = n => {   // in the card panel
+  if (!ancOn()) return '';
+  const a = n.anchor && getNode(n.anchor), kids = ancKids(n.id).length; if (!a && !kids) return '';
+  return `<div class="ancrow">${a ? `<span class="muted">Anchored to</span><button class="btn" data-goto="${esc(a.id)}" title="Go to it">${esc(a.title || 'Untitled')}</button><button class="btn" data-anc="off" title="It stays where it is, and stops moving with that card">Let go</button>` : ''}${kids ? `<span class="muted">${kids} card${kids === 1 ? ' is' : 's are'} anchored to this one</span>` : ''}</div>`;
+};
 // Picked cards moved together: a sleeve all of whose cards moved goes with them; one only some of whose cards moved
 // takes them back into their places.
 function slvAfterSet(set) {
@@ -6072,6 +6172,7 @@ function renderCard(box, n, edit) {
   box.innerHTML = `<div class="p-head"><span class="strip" style="background:${strip}"></span>${title}${canEject() ? EJECT_BTN : ''}${BOX_BTN(n)}${btn}${FOCUS_BTN(focusMode)}${minBtn()}</div>
     <div class="p-body">
       ${tagRow(n)}
+      ${ancRow(n)}
       ${n.summary ? text('summary', 'r-sum', n.summary, 'A short summary, shown on the map (Enter for a new line)') : ''}
       ${shownF.length ? `<div class="fieldgrid" style="margin-top:4px">${shownF.map(fieldRow).join('')}</div>` : ''}
       ${n.details ? `<div class="sec">Notes</div>${text('details', 'r-notes', n.details, 'Arguments, quotations, sources, open questions…')}` : ''}
@@ -6149,6 +6250,9 @@ function skKeepCentre(i, c0) {
   const d = state.sketches[i], c1 = skCentre(d), r = v => Math.round(v * 10) / 10;   // (measured as just drawn)
   state.sketches[i] = {...d, x: r(d.x + c0[0] - c1[0]), y: r(d.y + c0[1] - c1[1])}; renderSketches();
 }
+$('#detail').addEventListener('click', e => {   // the card panel's Let go: no longer anchored
+  const b = e.target.closest('[data-anc]'), n = b && selNode(); if (n) ancClear([n.id]);
+});
 $('#detail').addEventListener('click', e => {   // a mark in the card panel: on to its next state
   const b = e.target.closest('[data-mkp]'), n = b && selNode(); if (n) markStep(n, b.dataset.mkp, e.shiftKey);
 });
@@ -6206,6 +6310,8 @@ function renderOther(box) {
         <div class="sec">Colour</div>
         <div class="palette">${['', ...LINE_COLORS].map(c => `<button data-lcolor="${c}" class="${(l.color || '') === c ? 'cur' : ''}" style="background:${c ? shown(c) : 'var(--link)'}" title="${c ? 'Line colour' : 'The usual grey'}"></button>`).join('')}
           <input type="color" id="lColor" value="${l.color || '#9a9ca3'}" title="Any colour">${PICK_BTN}</div>
+        ${(() => { const seen = new Set(), ks = ckey().filter(k => k.color && !seen.has(k.color.toLowerCase()) && seen.add(k.color.toLowerCase()));   // the colour key's colours, in a second row
+          return ks.length ? `<div class="palette" style="margin-top:7px">${ks.map(k => `<button data-lcolor="${esc(k.color)}" class="${(l.color || '').toLowerCase() === k.color.toLowerCase() ? 'cur' : ''}" style="background:${shown(k.color)}" title="${esc(k.label || 'Colour key colour')}"></button>`).join('')}</div>` : ''; })()}
         <label class="chk" style="margin:12px 0 0;display:flex"><input type="checkbox" data-lalong="1" ${l.flat ? '' : 'checked'}>Label runs along the line</label>
         ${l.curve ? `<div style="margin-top:12px;display:flex;align-items:center;gap:10px"><span class="muted">${l.via ? 'It goes through its waypoint (the dot on the line).' : 'Drag the dot on the line to steer it through a point.'}</span>${l.via ? '<span class="grow"></span><button class="btn solid" data-o="nowp" title="Let the line find its own way again">Remove waypoint</button>' : ''}</div>` : ''}
         ${l.note ? `<div class="sec">Description</div>` + (edit ? `<textarea class="edx r-notes" data-lf="note" rows="1">${esc(l.note)}</textarea>` : `<div class="r-notes" data-edit="note">${esc(l.note)}</div>`) : ''}
@@ -8740,6 +8846,8 @@ function copyIn(P, at, bare, paste) {   // (paste: Ctrl+V, see pasteCards)
     return m;
   };
   const nodes = P.nodes.map(fresh);
+  const reAnchor = ns => { for (const o of ns) { if (o.anchor) { if (idMap.has(o.anchor)) o.anchor = idMap.get(o.anchor); else ancLetGo(o); } if (o.inner) reAnchor(o.inner.nodes); } };
+  reAnchor(nodes);   // (an anchored card pasted with its anchor stays anchored to the copy; without it, it's let go)
   let dx = 0, dy = 0;
   if (at) { const g = P.nodes.find(n => n.id === at.grab); if (g) { dx = Math.round(at.x - g.x); dy = Math.round(at.y - g.y); } }
   for (const m of nodes) { m.x = Math.round(m.x + dx); m.y = Math.round(m.y + dy); if (holder()) Object.assign(m, clampToBox(m.x, m.y, 224, 60)); }
@@ -8857,7 +8965,9 @@ if (!REF && !SAT) {
       + (c && canEject() ? `<button class="btn" data-clip="eject">Take ${n > 1 ? `the ${n} cards` : 'it'} out of the box</button>` : '')
       + (has ? `<button class="btn" data-clip="paste">Paste here<kbd>Ctrl V</kbd></button>` : '')
       + (!slvOn() ? '' : c ? `<button class="btn" data-clip="sleeve">Put ${n > 1 ? `the ${n} cards` : 'it'} in a sleeve</button>` + (slvOf(c.dataset.id) ? `<button class="btn" data-clip="unsleeve">Take it out of its sleeve</button>` : '')
-        : `<button class="btn" data-clip="newsleeve">New sleeve here</button>`);
+        : `<button class="btn" data-clip="newsleeve">New sleeve here</button>`)
+      + (c && ancOn() ? `<button class="btn" data-clip="ancabove">Anchor ${n > 1 ? 'each' : 'it'} to the card above</button><button class="btn" data-clip="ancpick">Anchor ${n > 1 ? `the ${n} cards` : 'it'} to a card…</button>`
+        + ([...clipIds()].some(id => (getNode(id) || {}).anchor) ? `<button class="btn" data-clip="ancoff">Let go of ${n > 1 ? 'their anchors' : 'its anchor'}</button>` : '') : '');
     menu._spot = spot; menu._card = c ? c.dataset.id : null; menu.hidden = false;
     menu.style.left = clamp(e.clientX, 8, innerWidth - menu.offsetWidth - 8) + 'px'; menu.style.top = clamp(e.clientY, 8, innerHeight - menu.offsetHeight - 8) + 'px';
   });
@@ -8870,6 +8980,9 @@ if (!REF && !SAT) {
     else if (k === 'sturn') { const v = getSleeve(menu._slv.id); if (v) slvTurn(v, menu._slv.i); }
     else if (k === 'sdetails') slvSelect(menu._slv.id);
     else if (k === 'eject') ejectCards(new Set(clipIds()));
+    else if (k === 'ancabove') ancAbove(new Set(clipIds()));
+    else if (k === 'ancoff') ancClear(new Set(clipIds()));
+    else if (k === 'ancpick') { ancArm = [...clipIds()]; canvas.classList.add('ancArm'); toast('Now click the card to anchor to (Esc to cancel).'); }
     else if (k === 'pick') { const id = menu._card; clearMulti(); if (id) multiSel.add(id); pickMode = true; renderMap(); renderSketches();
       toast('Tap other cards to pick them too (tap one again to let it go). Then drag any of them to move them together, or press and hold one to copy or cut them. Tap the map to finish.'); }
     else if (k === 'ridearm') { rideArm = menu._card || ''; if (rideArm && !isSel('node', rideArm)) select('node', rideArm); toast('Now drag the card onto a wide line and let go there.'); }
@@ -10480,6 +10593,11 @@ canvas.addEventListener('pointerdown', e => {
     if (inCard && e.target.closest('[data-ck]')) return;
     if (!inCard) endCardEdit();
   }
+  if (ancArm && e.button === 0) {   // "Anchor to a card…": this click picks it (anywhere else cancels)
+    const c = e.target.closest('.card[data-id]'), ids = ancArm; ancArm = null; canvas.classList.remove('ancArm');
+    if (c) ancSet(ids, c.dataset.id); else toast('Not anchored.');
+    e.preventDefault(); return;
+  }
   if (e.button !== 0 && e.button !== 1) return;
   const grip = e.target.closest('.boxGrip');   // a box's edge: making it bigger
   if (grip && e.button === 0 && !diveBusy()) { e.preventDefault(); boxGripDown(e, grip.dataset.grip); return; }
@@ -10605,6 +10723,7 @@ canvas.addEventListener('pointermove', e => {
     const sp = snapAt(drag.el, p.x - drag.ox, p.y - drag.oy, e.shiftKey);
     put2(n, sp.x, sp.y);
     holdForDrag([n.id]); placeCard(drag.el, n);
+    for (const id of ancTidy(true)) { const el = cardEls.get(id), m = getNode(id); if (el && m) placeCard(el, m); }   // (the cards anchored to it come too)
     linksSoon();
     slvDragOver(drag, p);   // over a sleeve: it makes room
     boxDragOver(drag, p);   // over the middle of a shoebox for half a second: it's outlined, and letting go puts the card inside
@@ -10642,6 +10761,7 @@ function snapAt(el, x, y, shift) {   // the card's top-left corner, moved so its
 }
 // moving a set of cards together (a box selection or a whole group): remember where each started
 function startMoveSet(ids, sks = []) {   // cards, and any picked drawings (one anchored to a card that's moving already follows it)
+  if (ancOn()) { const all = new Set(ids); for (const id of [...all]) for (const k of ancDesc(id)) all.add(k); ids = all; }   // (cards anchored to a moving card come too)
   const cards = [...ids].map(id => getNode(id)).filter(Boolean).map(n => ({n, ...at2(n)}));
   const drawn = state.sketches.filter(k => [...sks].includes(k.id) && !(k.anchor && ids.has && ids.has(k.anchor))).map(k => ({sk: k.id, orig: JSON.parse(JSON.stringify(k))}));
   return [...cards, ...drawn];
@@ -10776,7 +10896,7 @@ canvas.addEventListener('pointerup', e => {
     if (words) toast(`${words} picked: drag any of them to move them together. Click the map or press Esc to let go.`);
     return;
   }
-  if (d.type === 'set') { if (d.moved) { slvAfterSet(d.set); markDirty(); renderMap(); syncBlur(); } return; }
+  if (d.type === 'set') { if (d.moved) { slvAfterSet(d.set); ancKeep(d.set.filter(o => o.n).map(o => o.n.id)); markDirty(); renderMap(); syncBlur(); } return; }
   if (d.type === 'node') {
     const into = d.boxArmed; boxDropClear(d);
     if (d.moved && into && getNode(into)) {   // let go over an outlined shoebox: in it goes (the move and this are one undo step)
@@ -10785,8 +10905,9 @@ canvas.addEventListener('pointerup', e => {
       return;
     }
     if (d.moved) {
-      if (d.set) { slvAfterSet(d.set); markDirty(); renderMap(); return; }
+      if (d.set) { slvAfterSet(d.set); ancKeep(d.set.filter(o => o.n).map(o => o.n.id)); markDirty(); renderMap(); return; }
       const inSlv = d.slv && slvDrop(d), rn = getNode(d.id);
+      if (rn && !inSlv) ancKeep([rn.id]);
       if (inSlv) { if (rn) riderOut(rn); renderMap(); }   // into a sleeve, out of one, or to another spot in it
       const armed = rn && rideArm === rn.id; if (armed) rideArm = '';   // (the phone: "Put it in a line…" chosen first: this drop is a Shift-drop)
       const rd = rn && !inSlv && riderDrop(rn, e.shiftKey || armed, d.shapes || linkShape);   // with Shift: onto a wide line, into it; out of its line. Without: a card in a line slides along it
@@ -10823,7 +10944,7 @@ canvas.addEventListener('pointerup', e => {
     if (d.tapLink) { select('link', d.tapLink); return; }   // (the phone: a tap on a line or a card picks it)
     if (d.tapCard) { const n = getNode(d.tapCard); if (!n) return; if (pickMode) { pickToggle(n); return; } if (d.chip) { openTag(d.chip.dataset.tag); return; } const dbl = isDoubleClick(n.id, e); if (!isSel('node', n.id)) select('node', n.id); if (dbl) startCardEdit(n.id); return; }
     if (isDoubleClick('bg', e)) { const p = toWorld(e); addNode(p.x - 112, p.y - 20); }
-    else { pickMode = false; rideArm = ''; if (multiSel.size || multiSk.size) { clearMulti(); renderMap(); renderSketches(); } if (selected) select(null); if (sleeveSel) { sleeveSel = null; renderPanel(); } }
+    else { pickMode = false; rideArm = ''; if (ancArm) { ancArm = null; canvas.classList.remove('ancArm'); } if (multiSel.size || multiSk.size) { clearMulti(); renderMap(); renderSketches(); } if (selected) select(null); if (sleeveSel) { sleeveSel = null; renderPanel(); } }
   } else if (d.type === 'connect') {
     tempLink = null;
     const over = document.elementFromPoint(e.clientX, e.clientY);
