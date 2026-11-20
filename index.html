@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-4/Zjfjy+QUDXMUOGDvs4k0zoGNMgLbRsiRTF6uall2U=' 'sha256-CKKAApefor8VN9iJa1L7vG/DUojYAdO6bIB+J1AlD8E='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-n4lZT2w3QH7hMxlQteieKf6q5pvPSAG6GB/oaak1Bdo=' 'sha256-Vmx/DErvVui6XBAFz+eExr3v+IM1g74nN4QPmuGDs/Q='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -975,7 +975,7 @@ body.drop7 #mapName{min-width:60px}
     <div class="p-head"><span class="label">Tags &amp; fields</span><span class="grow"></span><button class="btn icon" id="catX" title="Close (Esc)"><svg viewBox="0 0 16 16"><path d="m4 4 8 8M12 4l-8 8"/></svg></button></div>
 <div class="dlg-body">
     <h4>Colour key</h4>
-    <p>This map's card colours and what each means, highest tier first. Drag a colour up or down to change the tiers; Clear and Base stay at the bottom.</p>
+    <p>This map's card colours and what each means, highest tier first. Drag a colour up or down to change the tiers. The bottom one is the faded tier: drag another colour there to make it the faded one. Base, just above it, is the colour new cards start in, so it stays put.</p>
     <div id="catKey"></div>
     <h4>Tags</h4>
     <p>Labels for any card, e.g. "Part I" or "Objection". A card can have several; its first tag colours its edge and groups it in the list.</p>
@@ -1110,7 +1110,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '27 (20 Nov 2026, 23:06)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '28 (20 Nov 2026, 23:22)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -1928,9 +1928,9 @@ const PALETTES = {
   pastel: {label: 'Muted pastels', colors: ['#e9e8e4','#ffffff','#d0ddf1','#dfd6ef','#6b6f7a','#4b4d54','#33353b']}
 };
 const SUB = 0, DEF = 1;   // the greyed-out shade's place in the palette, and the default (white)'s
-// A map's colour key (state.colorKey): its card colours, each with a label, lowest tier first. The first two are
-// fixed at the bottom: Clear (greyed out, the lowest tier) and Base (white, the default for new cards). The rest can
-// be put in any order, and that order (not how dark a colour is) sets the tiers. Every card colour on the map is in
+// A map's colour key (state.colorKey): its card colours, each with a label, lowest tier first. The first is the faded
+// tier (Clear: greyed out, the lowest); the second is Base (white, the default for new cards), which stays put. Any
+// other colour can be moved into the faded tier, or anywhere above Base, and that order (not how dark a colour is) sets the tiers. Every card colour on the map is in
 // it (a new one joins as "Unlabelled"). New maps start with the key chosen in Appearance.
 const KEY_LABELS = ['Clear', 'Base', 'Light', 'Light 2', 'Dark', 'Darker', 'Darkest'];
 const keyFrom = cols => cols.map((c, i) => ({color: c, label: KEY_LABELS[i] || 'Colour ' + (i + 1)}));
@@ -10000,7 +10000,7 @@ function exportCsv() {
 /* ---------- tags & fields dialog ---------- */
 function openCats() { showSide('cats'); }
 // The colour key's editor (in Appearance and in Tags & fields), highest tier at the top. Drag a row to move its tier
-// up or down (Clear and Base stay at the bottom). Changing a colour recolours its cards, on every page of the map;
+// up or down, the bottom (faded) place included; Base, the colour new cards start in, stays where it is. Changing a colour recolours its cards, on every page of the map;
 // taking a colour out moves its cards to Base.
 // The tags' colours, offered for a card too (to match a card to a tag or group exactly): any not in the key already.
 function tagSwatches(cur) {
@@ -10042,8 +10042,8 @@ document.addEventListener('click', e => { if (e.target.closest('#detail [data-pi
 function keyEditor() {
   const counts = new Map(), walk = ns => { for (const n of ns) { const c = n.color.toLowerCase(); counts.set(c, (counts.get(c) || 0) + 1); if (n.inner) walk(n.inner.nodes); } };
   walk(fullState().nodes);
-  return `<div class="ckey">${ckey().map((k, i) => ({k, i})).reverse().map(({k, i}) => `<div class="ckrow${i < 2 ? ' fixed' : ''}" data-ck="${i}"${i >= 2 ? ' draggable="true"' : ''}>
-      <span class="ckgrip" title="${i < 2 ? 'Fixed at the bottom of the tiers' : 'Drag to move this tier up or down'}">${i < 2 ? '–' : '⋮⋮'}</span>
+  return `<div class="ckey">${ckey().map((k, i) => ({k, i})).reverse().map(({k, i}) => `<div class="ckrow${i === DEF ? ' fixed' : ''}" data-ck="${i}"${i !== DEF ? ' draggable="true"' : ''}>
+      <span class="ckgrip" title="${i === DEF ? 'Base: new cards start in this colour, so it stays here' : i === SUB ? 'The faded tier (the lowest): drag it up to make it an ordinary tier, or drag another colour here to make that one faded' : 'Drag to move this tier up or down (to the bottom: the faded tier)'}">${i === DEF ? '–' : '⋮⋮'}</span>
       <input type="color" value="${k.color}" data-ckc title="Change this colour (its cards follow)">
       <input type="text" class="catname" value="${esc(k.label)}" data-ckl placeholder="Label">
       <span class="muted" title="Cards in this colour">${counts.get(k.color.toLowerCase()) || 0}</span>
@@ -10097,9 +10097,14 @@ document.addEventListener('dragend', () => { ckDrag = -1; document.querySelector
 document.addEventListener('drop', e => {
   const r = ckDrag >= 0 && e.target.closest && e.target.closest('.ckey .ckrow'); if (!r) return;
   e.preventDefault(); e.stopPropagation();
-  const from = ckDrag, to = Math.max(2, +r.dataset.ck), key = ckey(); ckDrag = -1;   // (dropped on Clear or Base: the lowest movable tier)
-  if (from === to) { keyRefresh(); return; }
-  pushUndo(); const [k] = key.splice(from, 1); key.splice(to, 0, k); changed(); keyRefresh();
+  const from = ckDrag, at = +r.dataset.ck, key = ckey(); ckDrag = -1;
+  if (from === DEF || from === at) { keyRefresh(); return; }
+  // Base stays where it is and the rest move round it: dropped on a row, a colour takes that row's place (on Base: just
+  // above it; on the bottom row: it becomes the faded tier, and the colour that was there moves up past Base)
+  const li = i => (i > DEF ? i - 1 : i), rest = key.filter((_, i) => i !== DEF), base = key[DEF];
+  const f = li(from), t = at === DEF ? DEF : li(at);
+  if (f === t) { keyRefresh(); return; }
+  pushUndo(); const [k] = rest.splice(f, 1); rest.splice(t, 0, k); rest.splice(DEF, 0, base); key.splice(0, key.length, ...rest); changed(); keyRefresh();
 });
 // The box on the map (Appearance, "Show the colour key on the map"): the key, highest tier first. Click it to edit.
 function renderKeyBox() {
