@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-rUWk88V1yUdjdPILQtlQAMMXeJCGutfJ+Tuv3Iu7eT0=' 'sha256-vjFDPE+isgJsULLe3L+/g9WJZ0Vr/b7C3LSR35td3y8='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Jqns3C8sdXCIwGQS8PwCatf9JbgUKtZ8T8k/4lPMYDc=' 'sha256-nXhZwsGOrDdegrB2iiWrfCXzAWJD9HRRD6zdPRXyhvo='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1119,7 +1119,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '35 (21 Nov 2026, 00:38)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '36 (21 Nov 2026, 00:46)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -2904,14 +2904,15 @@ function setFlap(a) {
   fr.classList.toggle('flapL', oL); fr.classList.toggle('flapR', oR); fr.classList.toggle('flapB', oB);
   const X0 = oL ? bw - Ll : 0, X1 = oR ? W - bw + Lr : W, Y1 = oB ? H - bw + Lb : H;   // the outer edges, as drawn now
   flapClip(flapMoving || boxShut ? [X0, X1, Y1] : null);
-  const filter = `saturate(${(1 - 0.6 * g).toFixed(3)}) contrast(${(1 - 0.45 * g).toFixed(3)}) brightness(${(0.85 + 0.15 * sn).toFixed(3)})`;
+  const rest = sn > 0.9999;   // (folded right down and still: no shading and no tilt, so the wall is drawn plainly - a filter left on at rest drew black slivers along its edge)
+  const filter = rest ? 'none' : `saturate(${(1 - 0.6 * g).toFixed(3)}) contrast(${(1 - 0.45 * g).toFixed(3)}) brightness(${(0.85 + 0.15 * sn).toFixed(3)})`;
   // each wall: where it is (in the space's units), its border (top right bottom left) and corners, its hinge, and
   // the sides its shadow may show on (not into the box, nor onto the bottom wall)
   const wall = (d, open, X, Y, w, h, B, R, origin, sc, clip) => {
     const f = fr.querySelector(`.flap[data-side="${d}"]`); f.style.display = open ? '' : 'none'; if (!open) return;
     Object.assign(f.style, {left: X - bw + 'px', top: Y - bw + 'px', width: w + 'px', height: h + 'px', borderWidth: B.map(v => v + 'px').join(' '),
       borderRadius: R.map(v => v + 'px').join(' '), backgroundPosition: `${-X}px ${-Y}px`, filter, clipPath: `inset(${clip.map(v => v + 'px').join(' ')})`});
-    Object.assign(f.lastChild.style, {left: -(X + B[3]) + 'px', top: -(Y + B[0]) + 'px', transformOrigin: origin, transform: sc});   // (its copies of the cards, in the space's units)
+    Object.assign(f.lastChild.style, {left: -(X + B[3]) + 'px', top: -(Y + B[0]) + 'px', transformOrigin: origin, transform: rest ? 'none' : sc});   // (its copies of the cards, in the space's units)
   };
   wall('b', oB, X0, H - bw, X1 - X0, Lb, [0, bw, bw, bw], [0, 0, rad, rad], `0 ${H - bw}px`, `scaleY(${sn.toFixed(4)})`, [1, -20, -20, -20]);
   const sh = H, sb = oB ? 0 : bw,   // (with the bottom wall down too, they overlap its top edge: no seam)
