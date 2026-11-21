@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-bYHsuU3xqwbHxdGHA5cwjqMjDNMMoajlrJUCP3PH4kk=' 'sha256-5xHxk4sOj4XsSmyIOKCdsAeTzLaOC2rcQ1gpW5irQ3I='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-xI6+4qC6P5xOufNXpHdv5YYZ5v5TO+V58nBo2CZa28U=' 'sha256-UbzCjKUdHTtj7nRMU58XniURPLk5b/vvxvyxA/eOny8='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1119,7 +1119,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '32 (21 Nov 2026, 00:25)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '33 (21 Nov 2026, 00:29)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -3980,7 +3980,9 @@ function renderMap() {
     show2();
     for (const n of state.nodes) { const el = cardEls.get(n.id), q = at2(n); if (el) { el.style.left = q.x + 'px'; el.style.top = q.y + 'px'; } }
   }
-  slvTidy(); renderSleeves(); wormDraw();
+  slvTidy();
+  if (worm && !wormBusy && wormFitA()) { wormBusy = true; try { renderMap(); } finally { wormBusy = false; } return; }
+  renderSleeves(); wormDraw();
   { const mv = ancTidy(); if (mv.length) ancEls(mv); }   // (a sleeve laid out again: the cards anchored to its cards follow)
   renderLinks(); ancTethers();
   applyView(); renderTierBar();
@@ -4476,7 +4478,7 @@ const ancRow = n => {   // in the card panel
 // sides (left, right or floor; past the top it goes back inside). Connections between cards that end up in different
 // boxes can't stay, so they go (one undo puts everything back). Cancel leaves both boxes as they were. While joined,
 // saving, the phone sync and undo's history outside see the boxes as they were before; undo inside works on the join.
-let worm = null;
+let worm = null, wormBusy = false;
 function wormGeo(c, W, ratio) {   // a box's size and how far its walls are folded out (as boxArea works them out)
   const H = W * ratio, bw = Math.max(3, 8 * W / SPACE_W), x = c.boxExt;
   const ext = !x ? {l: 0, r: 0, b: 0} : x === true ? {l: 0, r: 0, b: H - bw} : {l: +x.l || 0, r: +x.r || 0, b: +x.b || 0};
@@ -4527,6 +4529,7 @@ function wormDraw() {   // the two boxes' outlines, their names, and the dotted 
       + `<line class="wfHit" data-wg="${k}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" style="cursor:${cur}"><title>Drag to make this box bigger or smaller</title></line>`; };
   svgW.innerHTML = box(ra, w.titleA) + box(rb, w.titleB) + `<line class="wfJoin" x1="${w.jx}" y1="-6" x2="${w.jx}" y2="${Math.max(ra.h, rb.h) + 6}"/>`
     + grip('Al', ra.x, 20, ra.x, ra.h - 20, 'ew-resize') + grip('Ab', ra.x + 20, ra.h, w.jx - 20, ra.h, 'ns-resize')
+    + grip('Ar', w.jx, 20, w.jx, Math.max(ra.h, rb.h) - 20, 'ew-resize')
     + grip('Br', rb.x + rb.w, 20, rb.x + rb.w, rb.h - 20, 'ew-resize') + grip('Bb', w.jx + 20, rb.h, rb.x + rb.w - 20, rb.h, 'ns-resize');
 }
 // A free edge dragged: that box bigger or smaller that way (never smaller than its cards on this side of the line need).
@@ -4542,6 +4545,7 @@ function wormGripDown(e, which) {
     let v = d === 'l' ? x0.l - (p.x - p0.x) : d === 'r' ? x0.r + (p.x - p0.x) : x0.b + (p.y - p0.y);
     v = Math.round(Math.max(need[d], v < snap ? 0 : Math.min(v, 4 * g.W))); if (v === g.ext[d]) return;
     if (!moved) { moved = true; pushUndo(); }
+    if (which === 'Ar') { wormShift(v - g.ext.r); renderMap(); return; }   // (the join: the other box comes too)
     g.ext[d] = v; wormDraw();
   };
   const up = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', up); removeEventListener('pointercancel', up); if (moved) { markDirty(); renderMap(); } };
@@ -4561,11 +4565,30 @@ function wormScene() {
   box.querySelector('.p-body').insertAdjacentHTML('afterbegin', `<div class="sc-path">${path.map((p, i) => i === path.length - 1 ? `<b>${esc(p)}</b>` : esc(p)).join(' › ')} · joined to <b>${esc(worm.titleB)}</b></div>`);
   box.dataset.key = 'worm:' + A.id;
 }
-const wormSnap = () => JSON.stringify({nodes: state.nodes, links: state.links, sketches: state.sketches, sleeves: state.sleeves.filter(v => v.lv === worm.lv), ext: {A: worm.gA.ext, B: worm.gB.ext}});
+// The join moves: the first box's right edge (its wall folded out further, or back) and, with it, the other box and
+// everything in it. It moves by itself when a sleeve in the first box grows past the edge, or by its handle.
+const wormSideOf = v => { const id = v.slots.flat().find(i => getNode(i)), b = id && cardBox(id); return (b ? b.cx : v.x) < worm.jx ? 'A' : 'B'; };
+function wormSleeveCards(sd) { const ids = new Set(); for (const v of state.sleeves) if (v.lv === worm.lv && wormSideOf(v) === sd) v.slots.flat().forEach(i => ids.add(i)); return ids; }
+function wormShift(d) {
+  const w = worm; d = Math.round(d); if (!d) return;
+  const old = w.jx, keepA = wormSleeveCards('A'), sB = state.sleeves.filter(v => v.lv === w.lv && wormSideOf(v) === 'B');
+  for (const n of state.nodes) { const b = cardBox(n.id), cx = b ? b.cx : n.x + 112; if (cx >= old && !keepA.has(n.id)) n.x += d; }
+  state.sketches = state.sketches.map(k => { if (k.anchor) return k; const b = skBox(k); return b.x + b.w / 2 >= old ? (skMap(k, q => [q[0] + d, q[1]]) || k) : k; });
+  for (const v of sB) v.x += d;
+  w.gA.ext.r = Math.max(0, w.gA.ext.r + d); w.jx += d; w.dx += d;
+}
+function wormFitA() {   // a sleeve of the first box run past its right edge: the join moves out to make room
+  const w = worm, a = wormArea(w.gA); let over = 0;
+  for (const v of state.sleeves) { if (v.lv !== w.lv || wormSideOf(v) !== 'A') continue;
+    for (const id of v.slots.flat()) { const b = cardBox(id); if (b) over = Math.max(over, b.x + b.w + SLV.pad - a.x1); } }
+  if (over < 1) return false;
+  wormShift(Math.ceil(over)); return true;
+}
+const wormSnap = () => JSON.stringify({nodes: state.nodes, links: state.links, sketches: state.sketches, sleeves: state.sleeves.filter(v => v.lv === worm.lv), ext: {A: worm.gA.ext, B: worm.gB.ext}, jx: worm.jx, dx: worm.dx});
 function wormLoad(json) {
   const o = JSON.parse(json);
   state.nodes = o.nodes; state.links = o.links; state.sketches = o.sketches; state.sleeves = state.sleeves.filter(v => v.lv !== worm.lv).concat(o.sleeves);
-  if (o.ext) { worm.gA.ext = o.ext.A; worm.gB.ext = o.ext.B; }
+  if (o.ext) { worm.gA.ext = o.ext.A; worm.gB.ext = o.ext.B; } if (o.jx) { worm.jx = o.jx; worm.dx = o.dx; }
   if (selected && !(selected.type === 'node' ? getNode(selected.id) : getLink(selected.id))) selected = null;
   clearMulti(); labelPos.clear(); markDirty(); renderAll();
 }
@@ -4574,6 +4597,7 @@ function wormSplit() {
   const w = worm, side = x => x < w.jx ? 'A' : 'B', where = new Map(), size = new Map();
   const out = {A: {nodes: [], links: [], sketches: []}, B: {nodes: [], links: [], sketches: []}};
   for (const n of state.nodes) { const el = cardEls.get(n.id), W = el ? el.offsetWidth : (n.w || 224), H = el ? el.offsetHeight : 60; size.set(n.id, [W, H]); where.set(n.id, side(n.x + W / 2)); }
+  for (const v of state.sleeves) if (v.lv === w.lv) { const id = v.slots.flat().find(i => where.has(i)); if (id) { const sd = where.get(id); v.slots.flat().forEach(i => where.has(i) && where.set(i, sd)); } }   // (a sleeve's cards stay with it)
   const skSide = state.sketches.map(k => k.anchor && where.get(k.anchor) || (b => side(b.x + b.w / 2))(skBox(skLive(k))));   // (a drawing anchored to a card goes with it)
   const ext = {A: {...w.gA.ext}, B: {...w.gB.ext}};
   for (const sd of ['A', 'B']) {
