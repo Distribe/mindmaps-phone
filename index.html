@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-FLfPsPSnvf0uIex1Fr1M9GWe8SnMmPG5ZoclAPXupPo=' 'sha256-IVMKEBcLKrp68ocUFEDZciHUTPePU5L/zkBCQXzzt+E='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-QQm2FZ8Wj+ugZq4TcoSQERZ4/CDDB5WIPJvB8hqAaHg=' 'sha256-pmnWfJ5V4MT2PIQCwuYfyxiOD2Q5QzVUOMq2UvYpY4Q='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -741,6 +741,11 @@ mark.hit{background:#ffe14d;color:#16181d;border-radius:2px;padding:0}   /* the 
 #findRes .fr b{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #findRes .fr span{color:var(--muted);font-size:var(--t-small);margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55%}
 #findRes .fnone{padding:5px 8px;color:var(--muted);font-size:var(--t-small)}
+#wormBar{position:fixed;left:50%;bottom:calc(var(--edge) + 54px);transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:6px 6px 6px 16px;z-index:50;font-size:var(--t-small);max-width:min(640px,92vw)}
+#wormFrame{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none}
+#wormFrame .wfBox{fill:color-mix(in srgb,#fff 45%,var(--canvas));stroke:color-mix(in srgb,var(--accent) 30%,transparent);stroke-width:3}
+#wormFrame .wfJoin{stroke:var(--accent);stroke-width:5;stroke-linecap:round;stroke-dasharray:0 16}
+#wormFrame .wfT{font-size:26px;font-weight:600;fill:color-mix(in srgb,var(--accent) 75%,transparent)}
 #toast{position:fixed;left:50%;bottom:var(--edge);transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:6px 6px 6px 16px;z-index:50;font-size:var(--t-small);max-width:min(560px,90vw)}
 #toast span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
@@ -906,7 +911,7 @@ body.drop7 #mapName{min-width:60px}
 <body>
 
 <div id="canvas">
-  <div id="world"><div id="frame" hidden></div><div id="groups"></div><svg id="sleeves"></svg><svg id="links"></svg><svg id="sketch"></svg><div id="sketchText"></div><div id="cards"></div><svg id="sketchSel"></svg><svg id="ancSel"></svg><div id="drawRect" hidden></div></div><div id="outer"></div>
+  <div id="world"><div id="frame" hidden></div><div id="groups"></div><svg id="wormFrame"></svg><svg id="sleeves"></svg><svg id="links"></svg><svg id="sketch"></svg><div id="sketchText"></div><div id="cards"></div><svg id="sketchSel"></svg><svg id="ancSel"></svg><div id="drawRect" hidden></div></div><div id="outer"></div>
   <div id="mapHint"></div>
 </div>
 <canvas id="space" hidden></canvas>
@@ -1066,6 +1071,7 @@ body.drop7 #mapName{min-width:60px}
 </section>
 
 <div id="toast" class="panel" hidden></div>
+<div id="wormBar" class="panel" hidden><span class="wbT"></span><button class="btn solid" data-worm="done">Done</button><button class="btn" data-worm="cancel">Cancel</button></div>
 <div id="findBar" class="panel" hidden><div class="fb-row"><div class="search"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg><input type="text" id="find" placeholder="Search every card, in boxes too" autocomplete="off" spellcheck="false"></div><span id="findN" class="muted"></span><button class="btn icon" data-fb="prev" title="Previous match (Shift+Enter)"><svg viewBox="0 0 16 16"><path d="m4 10 4-4 4 4"/></svg></button><button class="btn icon" data-fb="next" title="Next match (Enter)"><svg viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"/></svg></button><button class="btn icon" data-fb="close" title="Close the search (Esc)"><svg viewBox="0 0 16 16"><path d="m4 4 8 8M12 4l-8 8"/></svg></button></div><div id="findRes"></div></div>
 <div id="underBar" class="panel" hidden></div>
 <div id="underOff" class="panel" hidden></div>
@@ -1111,7 +1117,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '30 (20 Nov 2026, 23:45)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '31 (21 Nov 2026, 00:20)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -2217,6 +2223,7 @@ function renderHelp() {
         <li><b>Spaces:</b> tick "Holds a space inside" when editing a card and it becomes a box with a handle underneath. Click the handle to lift the lid and zoom into the card's own page; click the open lid along the top (or Esc) to come back out. Inside, the top-left box shows the box itself (its title, summary and notes; Edit changes them), whichever card you pick. 2D only.</li>
         <li><b>Connect:</b> drag the dot on a card's right edge onto another card. Lines are one way (→), both ways (↔), no arrow (—) or a close link (═, a double line for tightly bound ideas). Any line can also be curved (it finds its way round the cards; drag its dot to steer it) and subtle (lighter, and not part of the core structure, so Spatialise and clustering ignore it). Click a line to edit it (Reverse direction is just under its two cards); hovering shows its description.</li>
         <li><b>Connection descriptions:</b> on a card, the small arrow beside a connection opens its description.</li>
+        <li><b>Join two boxes:</b> inside a box, right-click an empty spot &gt; Join another box at the right edge&hellip;, and pick the other box. Drag cards across the dotted line; Done puts each in the box on its side (Cancel: nothing moves).</li>
         <li><b>Anchors:</b> right-click a card &gt; Anchor it to the card above (or to a card&hellip;, then click it). It then moves with that card, keeping its place beside it, including when a sleeve's order changes. Let go of it from the same menu or its panel.</li>
         <li><b>Move around:</b> drag the background; scroll to zoom; <kbd>F</kbd> fits everything; click the minimap to jump.</li>
         <li><b>Spatialise:</b> click the button with three linked dots. A slider drops down: slide right and the cards move so linked ideas sit closer together (keeping the map's overall spread), slide left to go back. Fix layout keeps what's on screen (one Undo puts it back); Cancel or Esc puts the cards back.</li>
@@ -2595,16 +2602,16 @@ function refFullRect() {
 // above, a smaller window) and only changes when you make it bigger or smaller yourself.
 function keepBoxSize(n, w) { if (!REF && n && n.inner && !n.inner.w && w > 0) n.inner.w = Math.round(w); }
 let inside = [];
-const holder = () => inside[inside.length - 1] || null;
+const holder = () => worm ? null : inside[inside.length - 1] || null;   // (two boxes joined: a canvas of its own, in no box)
 function fullState() {
-  if (!inside.length) return state;
-  let nodes = state.nodes, links = state.links, sketches = state.sketches;
+  if (!inside.length && !worm) return state;
+  let nodes = worm ? worm.P.nodes : state.nodes, links = worm ? worm.P.links : state.links, sketches = worm ? worm.P.sketches : state.sketches;   // (two boxes joined: as they were)
   for (let i = inside.length - 1; i >= 0; i--) {
     const e = inside[i], c = e.nodes.find(n => n.id === e.id);
     if (c) c.inner = {...c.inner, nodes, links, sketches};
     nodes = e.nodes; links = e.links; sketches = e.sketches;
   }
-  return {...state, nodes, links, sketches};
+  return {...state, nodes, links, sketches, ...(worm ? {sleeves: worm.P.sleeves} : {})};
 }
 const snapState = () => JSON.stringify({...fullState(), _path: ctxPath || inside.map(e => e.id)});   // for undo: the whole map, and where you were
 function levelNodes(json) {   // the cards of the level a snapshot was taken in
@@ -3080,6 +3087,7 @@ function boxPic(id) {   // a picture of this page, without the card itself (the 
 }
 // Straight into a box, with no lid or zoom (coming back to a tab you were inside it in): as if you'd gone in and stayed.
 function enterCardNow(id) {
+  if (worm) return false;
   const n = getNode(id), b = cardBox(id); if (!n || !n.inner || !b || dimMode() !== '2') return false;
   const w = boxSpaceW(n, b), pic = boxPic(id), k = b.w / w;
   inside.push({id, nodes: state.nodes, links: state.links, sketches: state.sketches, view: {...view}, k, w, ox: b.x, oy: b.y, ratio: boxRatio(n, b), pic, sel: null});
@@ -3098,6 +3106,7 @@ function tabCamBack(cam) {   // back where the tab was left (as far as those box
   view = {...cam.views[path.length]}; applyView(); renderAll(); autosaveSoon(); return true;
 }
 function enterCard(id) {
+  if (worm) { toast('Press Done (or Cancel) to close the join before going into a box.'); return; }
   const n = getNode(id), b = cardBox(id); if (!n || !n.inner || !b) return;
   if (dimMode() !== '2') { toast('Switch to the 2D view to go inside a card.'); return; }
   closeSpatial(false); endCardEdit(); clearMulti(); fadeOutMinimap();
@@ -3212,11 +3221,13 @@ const otherEnd = (l, id) => getNode(l.from === id ? l.to : l.from);
 function pushUndo(key) {
   const now = Date.now();
   if (key && key === lastUndoKey && now - lastUndoTime < 1500) { lastUndoTime = now; return; }
+  if (worm) { worm.undo.push(wormSnap()); if (worm.undo.length > 200) worm.undo.shift(); worm.redo = []; lastUndoKey = key || null; lastUndoTime = now; return; }   // (two boxes joined: undo works on the join)
   undoStack.push(snapState());
   if (undoStack.length > 200) undoStack.shift();
   redoStack = []; lastUndoKey = key || null; lastUndoTime = now;
 }
 function restore(json, quiet) {   // quiet: a change from another window (not a change made here: not saved or sent on)
+  if (worm) { worm = null; $('#wormBar').hidden = true; }   // (two boxes joined: the join is dropped)
   const keep = state.settings, o = JSON.parse(json), path = o._path || [], was = inside;
   delete o._path;
   state = o; state.settings = keep; inside = []; state.sketches = state.sketches || []; state.sleeves = state.sleeves || [];
@@ -3232,8 +3243,8 @@ function restore(json, quiet) {   // quiet: a change from another window (not a 
   if (quiet) { pairMemo = null; renderAll(); return; }
   lastUndoKey = null; changed();
 }
-function undo() { if (spatial || sp3s) { closeSpatial(false); return; } if (!undoStack.length) return; redoStack.push(snapState()); restore(undoStack.pop()); hideToast(); }
-function redo() { if (spatial || sp3s) closeSpatial(false); if (!redoStack.length) return; undoStack.push(snapState()); restore(redoStack.pop()); }
+function undo() { if (spatial || sp3s) { closeSpatial(false); return; } if (worm) { if (worm.undo.length) { worm.redo.push(wormSnap()); wormLoad(worm.undo.pop()); } return; } if (!undoStack.length) return; redoStack.push(snapState()); restore(undoStack.pop()); hideToast(); }
+function redo() { if (spatial || sp3s) closeSpatial(false); if (worm) { if (worm.redo.length) { worm.undo.push(wormSnap()); wormLoad(worm.redo.pop()); } return; } if (!redoStack.length) return; undoStack.push(snapState()); restore(redoStack.pop()); }
 
 let autosaveTimer = null;
 // The file this tab's map is linked to (for Save and autosave to file) is kept in the browser's database, so a
@@ -3325,6 +3336,7 @@ $('#versions').addEventListener('click', async e => {
   const rec = libVersions() ? {name: state.name, data: await app('read_version', fileName, key).catch(() => null)} : readVersions()[+key - 1];
   if (!rec || !rec.data) return;
   if (b.dataset.vo) { openInNewTab(rec.data, `${rec.name} (version)`, null); return; }
+  wormEnd(true);
   await snapshot('Before restore');
   pushUndo();
   const keepSettings = state.settings, keepId = state.id;
@@ -3966,7 +3978,7 @@ function renderMap() {
     show2();
     for (const n of state.nodes) { const el = cardEls.get(n.id), q = at2(n); if (el) { el.style.left = q.x + 'px'; el.style.top = q.y + 'px'; } }
   }
-  slvTidy(); renderSleeves();
+  slvTidy(); renderSleeves(); wormDraw();
   { const mv = ancTidy(); if (mv.length) ancEls(mv); }   // (a sleeve laid out again: the cards anchored to its cards follow)
   renderLinks(); ancTethers();
   applyView(); renderTierBar();
@@ -4093,7 +4105,7 @@ function loopColours(loops) {
 // change size, or are moved by something else, like Spatialise). Sleeves show in the 2D view only.
 const SLV = {pad: 25, lab: 44, gap: 50, par: 50, col: 84, band: 60, r: 22, room: 16, pocket: 15, lay: 2};   // (pocket: round each card; then 10px of sleeve. lay: this spacing's number)
 const slvOn = () => !!state.sleeves && !state.settings.space && !state.settings.spaceFlat && !state.settings.dim3 && !state.settings.tiers;
-const slvLevel = () => inside.map(e => e.id).join('/');
+const slvLevel = () => worm ? worm.lv : inside.map(e => e.id).join('/');
 const levelSleeves = () => slvOn() ? state.sleeves.filter(v => v.lv === slvLevel()) : [];
 const getSleeve = id => (state.sleeves || []).find(v => v.id === id);
 const slvOf = id => levelSleeves().find(v => v.slots.some(x => x.includes(id)));
@@ -4454,6 +4466,148 @@ const ancRow = n => {   // in the card panel
   const a = n.anchor && getNode(n.anchor), kids = ancKids(n.id).length; if (!a && !kids) return '';
   return `<div class="ancrow">${a ? `<span class="muted">Anchored to</span><button class="btn" data-goto="${esc(a.id)}" title="Go to it">${esc(a.title || 'Untitled')}</button><button class="btn" data-anc="off" title="It stays where it is, and stops moving with that card">Let go</button>` : ''}${kids ? `<span class="muted">${kids} card${kids === 1 ? ' is' : 's are'} anchored to this one</span>` : ''}</div>`;
 };
+// Two boxes joined (a wormhole). Inside a box, its right edge can be joined straight onto another box from the level
+// above, so cards can be dragged from one to the other: both boxes' cards are laid out in one canvas, the second box
+// just past the first one's right wall, with a dotted line where they meet. Nothing counts as moved until Done: then
+// the join closes, each card (and drawing, and sleeve) goes into the box on its side of the line, both boxes are where
+// they always were, and you're back inside the first. A box only grows to take in a card put past one of its outer
+// sides (left, right or floor; past the top it goes back inside). Connections between cards that end up in different
+// boxes can't stay, so they go (one undo puts everything back). Cancel leaves both boxes as they were. While joined,
+// saving, the phone sync and undo's history outside see the boxes as they were before; undo inside works on the join.
+let worm = null;
+function wormGeo(c, W, ratio) {   // a box's size and how far its walls are folded out (as boxArea works them out)
+  const H = W * ratio, bw = Math.max(3, 8 * W / SPACE_W), x = c.boxExt;
+  const ext = !x ? {l: 0, r: 0, b: 0} : x === true ? {l: 0, r: 0, b: H - bw} : {l: +x.l || 0, r: +x.r || 0, b: +x.b || 0};
+  return {W, H, bw, ext};
+}
+const wormArea = g => ({x0: g.bw + 8 - g.ext.l, y0: 41, x1: g.W + g.ext.r - g.bw - 8, y1: g.H + g.ext.b - g.bw - 8});
+const wormOthers = () => { const e = holder(); return e ? e.nodes.filter(n => n.inner && n.id !== e.id) : []; };
+function wormPicker(menu) {   // which box to join on (the others on the level above)
+  const bs = wormOthers(); if (!bs.length) { toast('There’s no other box on the level above to join to this one.'); return; }
+  menu.innerHTML = `<div class="muted" style="padding:4px 8px">Join which box at the right edge?</div><div style="display:flex;flex-direction:column;max-height:60vh;overflow:auto">`
+    + bs.map(n => `<button class="btn" data-clip="joinbox" data-id="${esc(n.id)}">${esc(n.title || 'Untitled')}</button>`).join('') + '</div>';
+  menu.hidden = false;
+  menu.style.left = clamp(parseFloat(menu.style.left) || 8, 8, innerWidth - menu.offsetWidth - 8) + 'px'; menu.style.top = clamp(parseFloat(menu.style.top) || 8, 8, innerHeight - menu.offsetHeight - 8) + 'px';
+}
+function wormStart(bId) {
+  const e = holder(); if (!e || worm || dimMode() !== '2' || flatKey()) return;
+  const aId = e.id, A0 = e.nodes.find(n => n.id === aId), B0 = e.nodes.find(n => n.id === bId); if (!A0 || !B0 || !B0.inner) return;
+  closeSpatial(false); endCardEdit(); clearMulti(); selected = null; tagPane = null; panelMode = 'read';
+  const view0 = {...view};
+  A0.inner = {...A0.inner, nodes: state.nodes, links: state.links, sketches: state.sketches};   // (the box as it is now)
+  inside.pop(); state.nodes = e.nodes; state.links = e.links; state.sketches = e.sketches; view = {...e.view};
+  insideBlur = 1; frameSig = ''; labelPos.clear(); renderAll();   // (the level above, for a moment: so the other box can be measured)
+  const bB = cardBox(bId);
+  if (!bB) { enterCardNow(aId); view = view0; applyView(); renderAll(); toast('That box couldn’t be joined.'); return; }
+  const gA = wormGeo(A0, e.w, e.ratio), gB = wormGeo(B0, boxSpaceW(B0, bB), boxRatio(B0, bB));
+  const jx = gA.W + gA.ext.r, dx = jx + gB.ext.l;   // the join: the first box's right edge; the second box starts there
+  const base = inside.map(x => x.id).join('/'), lvA = base ? base + '/' + aId : aId, lvB = base ? base + '/' + bId : bId, lv = lvA + '~' + bId;
+  const ia = cloneJ(A0.inner), ib = cloneJ(B0.inner), from = new Map();
+  (ia.nodes || []).forEach(n => from.set(n.id, 'A')); (ib.nodes || []).forEach(n => { from.set(n.id, 'B'); n.x += dx; });
+  const shiftSk = k => { const m = skMap(k, q => [q[0] + dx, q[1]]) || k; if (m.anchor) m.ax = (+m.ax || 0) + dx; return m; };
+  const sl = state.sleeves.filter(v => v.lv === lvA || v.lv === lvB).map(v => ({...cloneJ(v), lv, ...(v.lv === lvB ? {x: v.x + dx} : {})}));
+  worm = {aId, bId, titleA: A0.title || 'Untitled', titleB: B0.title || 'Untitled', gA, gB, jx, dx, lvA, lvB, lv, from, view0, pview: {...view},
+    P: {nodes: state.nodes, links: state.links, sketches: state.sketches, sleeves: state.sleeves}, undo: [], redo: []};
+  state.nodes = [...(ia.nodes || []), ...(ib.nodes || [])]; state.links = [...(ia.links || []), ...(ib.links || [])];
+  state.sketches = [...(ia.sketches || []), ...(ib.sketches || []).map(shiftSk)];
+  state.sleeves = state.sleeves.filter(v => v.lv !== lvA && v.lv !== lvB).concat(sl);
+  labelPos.clear(); frameSig = '';
+  wormFit(); $('#wormBar .wbT').textContent = `“${worm.titleA}” joined to “${worm.titleB}”: drag cards across the dotted line.`; $('#wormBar').hidden = false;
+  renderAll();
+}
+function wormFit() {   // both boxes in view
+  const w = worm, X0 = -w.gA.ext.l - 20, X1 = w.dx + w.gB.W + w.gB.ext.r + 20, Y0 = -70, Y1 = Math.max(w.gA.H + w.gA.ext.b, w.gB.H + w.gB.ext.b) + 20;
+  const f = freeRect(), k = Math.min(f.w / (X1 - X0), f.h / (Y1 - Y0)) * 0.94;
+  view = {s: k, tx: f.x + (f.w - (X1 - X0) * k) / 2 - X0 * k, ty: f.y + (f.h - (Y1 - Y0) * k) / 2 - Y0 * k}; applyView();
+}
+function wormDraw() {   // the two boxes' outlines, their names, and the dotted line where they're joined
+  const svgW = $('#wormFrame'); if (!svgW) return;
+  if (!worm) { if (svgW.innerHTML) svgW.innerHTML = ''; return; }
+  const w = worm, ra = {x: -w.gA.ext.l, w: w.gA.W + w.gA.ext.l + w.gA.ext.r, h: w.gA.H + w.gA.ext.b}, rb = {x: w.dx - w.gB.ext.l, w: w.gB.W + w.gB.ext.l + w.gB.ext.r, h: w.gB.H + w.gB.ext.b};
+  const box = (q, t) => `<rect class="wfBox" x="${q.x}" y="0" width="${q.w}" height="${q.h}" rx="16"/><text class="wfT" x="${q.x + 20}" y="-22">${esc(t)}</text>`;
+  svgW.innerHTML = box(ra, w.titleA) + box(rb, w.titleB) + `<line class="wfJoin" x1="${w.jx}" y1="-6" x2="${w.jx}" y2="${Math.max(ra.h, rb.h) + 6}"/>`;
+}
+const wormSnap = () => JSON.stringify({nodes: state.nodes, links: state.links, sketches: state.sketches, sleeves: state.sleeves.filter(v => v.lv === worm.lv)});
+function wormLoad(json) {
+  const o = JSON.parse(json);
+  state.nodes = o.nodes; state.links = o.links; state.sketches = o.sketches; state.sleeves = state.sleeves.filter(v => v.lv !== worm.lv).concat(o.sleeves);
+  if (selected && !(selected.type === 'node' ? getNode(selected.id) : getLink(selected.id))) selected = null;
+  clearMulti(); labelPos.clear(); markDirty(); renderAll();
+}
+// Done: which box each thing goes back into (by its side of the line), and where in it.
+function wormSplit() {
+  const w = worm, side = x => x < w.jx ? 'A' : 'B', where = new Map(), size = new Map();
+  const out = {A: {nodes: [], links: [], sketches: []}, B: {nodes: [], links: [], sketches: []}};
+  for (const n of state.nodes) { const el = cardEls.get(n.id), W = el ? el.offsetWidth : (n.w || 224), H = el ? el.offsetHeight : 60; size.set(n.id, [W, H]); where.set(n.id, side(n.x + W / 2)); }
+  const skSide = state.sketches.map(k => k.anchor && where.get(k.anchor) || (b => side(b.x + b.w / 2))(skBox(skLive(k))));   // (a drawing anchored to a card goes with it)
+  const ext = {A: {...w.gA.ext}, B: {...w.gB.ext}};
+  for (const sd of ['A', 'B']) {
+    const g = sd === 'A' ? w.gA : w.gB, a = wormArea(g), cap = 4 * g.W, ns = state.nodes.filter(n => where.get(n.id) === sd);
+    let needL = 0, needR = 0, needB = 0;
+    for (const n of ns) {
+      const [W, H] = size.get(n.id); if (sd === 'B') n.x -= w.dx;
+      n.y = Math.max(a.y0, n.y);   // (past the top: back inside)
+      if (sd === 'A') { n.x = Math.min(n.x, a.x1 - W); needL = Math.max(needL, a.x0 - n.x); }   // (the joined side: back inside; the far side: the box grows)
+      else { n.x = Math.max(n.x, a.x0); needR = Math.max(needR, n.x + W - a.x1); }
+      needB = Math.max(needB, n.y + H - a.y1);
+    }
+    const e = ext[sd]; e.l = Math.min(cap, e.l + Math.ceil(needL)); e.r = Math.min(cap, e.r + Math.ceil(needR)); e.b = Math.min(cap, e.b + Math.ceil(needB));
+    const a2 = wormArea({...g, ext: e});
+    for (const n of ns) { const [W, H] = size.get(n.id); n.x = Math.round(Math.max(a2.x0, Math.min(n.x, a2.x1 - W))); n.y = Math.round(Math.max(a2.y0, Math.min(n.y, a2.y1 - H))); }
+    out[sd].nodes = ns;
+  }
+  let dropped = 0;
+  for (const l of state.links) { const s1 = where.get(l.from), s2 = where.get(l.to); if (s1 && s1 === s2) out[s1].links.push(l); else dropped++; }
+  const kept = new Set([...out.A.links, ...out.B.links].map(l => l.id)), byId = new Map(state.nodes.map(n => [n.id, n]));
+  for (const n of state.nodes) {
+    if (n.anchor && where.get(n.anchor) !== where.get(n.id)) ancLetGo(n);
+    if (n.on && !kept.has(n.on)) { delete n.on; delete n.onT; delete n.onR; }
+  }
+  for (const n of state.nodes) { const a = n.anchor && byId.get(n.anchor); if (a) { n.ox = n.x - a.x; n.oy = n.y - a.y; } }   // (where it is now, beside its anchor)
+  state.sketches.forEach((k, i) => {
+    const sd = skSide[i]; let m = k;
+    if (sd === 'B') { m = skMap(k, q => [q[0] - w.dx, q[1]]) || k; if (m.anchor) m.ax = (+m.ax || 0) - w.dx; }
+    if (m.anchor && where.get(m.anchor) !== sd) { delete m.anchor; delete m.ax; delete m.ay; }
+    out[sd].sketches.push(m);
+  });
+  const sleeves = [];
+  for (const v of state.sleeves.filter(v => v.lv === w.lv)) {
+    const first = v.slots.flat().find(id => where.has(id)), sd = first ? where.get(first) : side(v.x);
+    const slots = v.slots.map(x => x.filter(id => where.get(id) === sd)).filter(x => x.length);
+    const m = {...v, lv: sd === 'A' ? w.lvA : w.lvB, slots, turns: (v.turns || []).filter(t => slots.some(x => x.includes(t)))};
+    if (sd === 'B') m.x -= w.dx;
+    if (slots.flat().length !== v.slots.flat().length) m.lay = 0;   // (laid out again)
+    sleeves.push(m);
+  }
+  const moves = [];   // a box inside one of them that went to the other: the sleeves inside it go with it
+  for (const n of state.nodes) if (n.inner && w.from.has(n.id) && w.from.get(n.id) !== where.get(n.id)) moves.push([(w.from.get(n.id) === 'A' ? w.lvA : w.lvB) + '/' + n.id, (where.get(n.id) === 'A' ? w.lvA : w.lvB) + '/' + n.id]);
+  const toB = state.nodes.filter(n => w.from.get(n.id) === 'A' && where.get(n.id) === 'B').length, toA = state.nodes.filter(n => w.from.get(n.id) === 'B' && where.get(n.id) === 'A').length;
+  return {out, ext, dropped, sleeves, moves, toA, toB};
+}
+function wormEnd(keep) {   // the join closes (keep: Done; otherwise Cancel)
+  const w = worm; if (!w) return;
+  endCardEdit(); clearMulti();
+  const r = keep ? wormSplit() : null;
+  worm = null; $('#wormBar').hidden = true; wormDraw();
+  state.nodes = w.P.nodes; state.links = w.P.links; state.sketches = w.P.sketches; state.sleeves = w.P.sleeves;
+  view = {...w.pview}; selected = null; labelPos.clear(); frameSig = '';
+  renderAll();
+  const A = state.nodes.find(n => n.id === w.aId), B = state.nodes.find(n => n.id === w.bId);
+  if (!A || !B || !enterCardNow(w.aId)) { toast('The boxes couldn’t be put back as joined: nothing was moved.'); return; }
+  view = {...w.view0}; applyView();
+  if (!r) { renderAll(); toast('Nothing was moved.'); return; }
+  pushUndo();   // (one undo: both boxes as they were before the join)
+  state.nodes = r.out.A.nodes; state.links = r.out.A.links; state.sketches = r.out.A.sketches;
+  B.inner = {...B.inner, nodes: r.out.B.nodes, links: r.out.B.links, sketches: r.out.B.sketches};
+  for (const [c, x] of [[A, r.ext.A], [B, r.ext.B]]) { if (x.l > 0 || x.r > 0 || x.b > 0) c.boxExt = x; else delete c.boxExt; }
+  flapA = hasExt(A) ? Math.PI / 2 : 0; setFlap(flapA);
+  state.sleeves = state.sleeves.filter(v => v.lv !== w.lvA && v.lv !== w.lvB).concat(r.sleeves);
+  for (const [o, nw] of r.moves) for (const v of state.sleeves) if (v.lv === o || v.lv.startsWith(o + '/')) v.lv = nw + v.lv.slice(o.length);
+  frameSig = ''; changed();
+  const said = [r.toB && `${r.toB} card${r.toB === 1 ? '' : 's'} moved to “${w.titleB}”`, r.toA && `${r.toA} to “${w.titleA}”`].filter(Boolean).join(', ') || 'No cards changed box';
+  toast(said + '.' + (r.dropped ? ` ${r.dropped} connection${r.dropped === 1 ? '' : 's'} between the two boxes had to go.` : ''), true);
+}
+document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('#wormBar [data-worm]'); if (b) wormEnd(b.dataset.worm === 'done'); });
 // Picked cards moved together: a sleeve all of whose cards moved goes with them; one only some of whose cards moved
 // takes them back into their places.
 function slvAfterSet(set) {
@@ -8343,6 +8497,7 @@ const draftCards = d => countDeep(d.id === project.cur ? fullState().nodes : d.d
 function nextDraftName() { let k = project.drafts.length + 1; while (project.drafts.some(d => d.name === draftName(k))) k++; return draftName(k); }
 // Go to another draft: this one is put away (with its undo history) and that one comes out, just as you left it.
 function switchDraft(id) {
+  wormEnd(true);
   const to = draftById(id); if (!to || id === project.cur) return;
   if (refEditing(id)) { toast('That draft is being edited on the other screen. Switch it to Read-only there (or bring it back) first.'); return; }
   closeSpatial(false); endCardEdit(); finishSketchText(); sketchSel = null; draftMenu(false);
@@ -9007,7 +9162,8 @@ if (!REF && !SAT) {
       + (!slvOn() ? '' : c ? `<button class="btn" data-clip="sleeve">Put ${n > 1 ? `the ${n} cards` : 'it'} in a sleeve</button>` + (slvOf(c.dataset.id) ? `<button class="btn" data-clip="unsleeve">Take it out of its sleeve</button>` : '')
         : `<button class="btn" data-clip="newsleeve">New sleeve here</button>`)
       + (c && ancOn() ? `<button class="btn" data-clip="ancabove">Anchor ${n > 1 ? 'each' : 'it'} to the card above</button><button class="btn" data-clip="ancpick">Anchor ${n > 1 ? `the ${n} cards` : 'it'} to a card…</button>`
-        + ([...clipIds()].some(id => (getNode(id) || {}).anchor) ? `<button class="btn" data-clip="ancoff">Let go of ${n > 1 ? 'their anchors' : 'its anchor'}</button>` : '') : '');
+        + ([...clipIds()].some(id => (getNode(id) || {}).anchor) ? `<button class="btn" data-clip="ancoff">Let go of ${n > 1 ? 'their anchors' : 'its anchor'}</button>` : '') : '')
+      + (!c && holder() && !worm && wormOthers().length ? '<button class="btn" data-clip="joinpick">Join another box at the right edge…</button>' : '');
     menu._spot = spot; menu._card = c ? c.dataset.id : null; menu.hidden = false;
     menu.style.left = clamp(e.clientX, 8, innerWidth - menu.offsetWidth - 8) + 'px'; menu.style.top = clamp(e.clientY, 8, innerHeight - menu.offsetHeight - 8) + 'px';
   });
@@ -9021,6 +9177,8 @@ if (!REF && !SAT) {
     else if (k === 'sdetails') slvSelect(menu._slv.id);
     else if (k === 'eject') ejectCards(new Set(clipIds()));
     else if (k === 'ancabove') ancAbove(new Set(clipIds()));
+    else if (k === 'joinpick') wormPicker(menu);
+    else if (k === 'joinbox') wormStart(b.dataset.id);
     else if (k === 'ancoff') ancClear(new Set(clipIds()));
     else if (k === 'ancpick') { ancArm = [...clipIds()]; canvas.classList.add('ancArm'); toast('Now click the card to anchor to (Esc to cancel).'); }
     else if (k === 'pick') { const id = menu._card; clearMulti(); if (id) multiSel.add(id); pickMode = true; renderMap(); renderSketches();
@@ -9445,6 +9603,7 @@ function tabLoad(t, text) {   // bring a tab's map out (on its own draft)
   if (!$('#library').hidden) renderLibrary();
 }
 async function tabSwitch(id, drop) {   // drop: the tab on screen is being closed (nothing to put away)
+  wormEnd(true);
   if (id === tabCur || tabBusy || diveBusy()) return;
   const to = tabs.find(t => t.id === id); if (!to) return;
   tabBusy = true;
@@ -9537,7 +9696,7 @@ function portalTake(file, text) {
 }
 let portalWait = null;
 function portalApply(I) {   // into the map on screen
-  if (drag || cardEdit || tabBusy || diveBusy() || spatial) { clearTimeout(portalWait); portalWait = setTimeout(() => portalApply(I), 300); return; }   // (once you've let go)
+  if (drag || cardEdit || tabBusy || diveBusy() || spatial || worm) { clearTimeout(portalWait); portalWait = setTimeout(() => portalApply(I), 300); return; }   // (once you've let go)
   const mine = project.cur, L = serialize(), M = portalMerge({...L, draft: L.draft || mine}, I, mine);
   if (M === I && I.draft && I.draft !== mine && Array.isArray(I.drafts)) {   // this draft is gone there: theirs instead
     state = normalize(I); takeDrafts(I); inside = []; selected = null; labelPos.clear(); renderAll(); openView(); renderTabs(); return;
@@ -9943,6 +10102,7 @@ async function saveFile(saveAs) {
 // Before this window shows another map: in the app, a map in the library just gets its last changes written
 // (nothing to lose); anything else asks first if it has unsaved changes.
 async function leaveMap() {
+  wormEnd(true);
   if (inApp() && fileName && dirty) { try { await writeToLibrary(); return true; } catch (e) { /* ask below */ } }
   return confirmDiscard();
 }
@@ -10096,7 +10256,7 @@ function keyRefresh(focusIn) {
 function recolourAll(from, to) {
   from = from.toLowerCase();
   const walk = ns => { for (const n of ns) { if (n.color.toLowerCase() === from) n.color = to; if (n.inner) walk(n.inner.nodes); } };
-  walk(fullState().nodes);
+  walk(fullState().nodes); if (worm) walk(state.nodes);   // (two boxes joined: their cards too)
 }
 document.addEventListener('input', e => {
   const r = e.target.closest && e.target.closest('.ckey .ckrow'); if (!r || !e.target.matches('[data-ckc]')) return;
