@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-8HlKZKcTgfwWcraoC2BF9v6tOsBUfpy/QEbCFqOSsl4=' 'sha256-PdhhUpqLKp2x9uBEKibVBUIWDnIee+jvBFRwkEEztcE='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-rUWk88V1yUdjdPILQtlQAMMXeJCGutfJ+Tuv3Iu7eT0=' 'sha256-vjFDPE+isgJsULLe3L+/g9WJZ0Vr/b7C3LSR35td3y8='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -400,7 +400,7 @@ body.refOn{--top0:calc(var(--app-top) + var(--ref-h,0px) + var(--refbar-h))}
 #sketch .fillhit{fill:transparent;stroke:none}
 #sketchSel{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none;z-index:4}
 #ancSel{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none;z-index:4}
-#ancSel line{stroke:#4a6699;fill:none}
+#ancSel{z-index:6}
 .ancrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:4px 0 8px;font-size:var(--t-small)}
 #canvas.ancArm,#canvas.ancArm .card{cursor:crosshair}
 #sketchSel .box{fill:none;stroke:#4a6699;stroke-dasharray:6 4}
@@ -1119,7 +1119,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '34 (21 Nov 2026, 00:35)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '35 (21 Nov 2026, 00:38)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -4456,20 +4456,27 @@ function ancClear(ids) {
   pushUndo(); ns.forEach(ancLetGo); changed();
   toast(ns.length === 1 ? 'No longer anchored: it stays where it is.' : `${ns.length} cards no longer anchored: they stay where they are.`, true);
 }
-function ancTethers() {   // the picked card's anchor, and the cards anchored to it: a dashed line to each
+// The picked card's anchors, shown as an anchor symbol on each card it's tied to: blue on the card it's anchored to
+// (that card leads: it follows it), amber on the cards anchored to it (they follow it). Same size on screen at any zoom.
+const ANC_LEAD = '#3a7bd5', ANC_FOLLOW = '#e08a1e';
+const ancIcon = (c, size) => `<svg viewBox="0 0 24 24" width="${size}" height="${size}" style="vertical-align:-3px"><circle cx="12" cy="12" r="11" fill="${c}"/><g fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="6.5" r="2"/><path d="M12 8.5V19M8 11.5h8M6.5 14.5a5.5 5 0 0 0 11 0"/></g></svg>`;
+function ancTethers() {
   const svg = $('#ancSel'); if (!svg) return;
-  const ids = new Set([...(selNode() ? [selNode().id] : []), ...multiSel]); let h = '';
-  if (ancOn() && ids.size) {
-    const seen = new Set(), line = (p, q) => { const k = p + '>' + q, a = cardBox(p), b = cardBox(q); if (seen.has(k) || !a || !b) return ''; seen.add(k);
-      return `<line x1="${a.cx}" y1="${a.cy}" x2="${b.cx}" y2="${b.cy}" stroke-width="${1.5 / view.s}" stroke-dasharray="${5 / view.s} ${4 / view.s}"/>`; };
-    for (const id of ids) { const n = getNode(id); if (!n) continue; if (n.anchor) h += line(id, n.anchor); for (const k of ancKids(id)) h += line(k.id, id); }
+  const ids = new Set([...(selNode() ? [selNode().id] : []), ...multiSel]), mark = new Map();
+  if (ancOn() && ids.size) for (const id of ids) {
+    const n = getNode(id); if (!n) continue;
+    if (n.anchor && !ids.has(n.anchor)) mark.set(n.anchor, ANC_LEAD);
+    for (const k of ancKids(id)) if (!ids.has(k.id) && !mark.has(k.id)) mark.set(k.id, ANC_FOLLOW);
   }
+  const z = 22 / view.s; let h = '';
+  for (const [id, c] of mark) { const b = cardBox(id); if (!b) continue;
+    h += `<g transform="translate(${b.x - z * 0.35},${b.y - z * 0.35}) scale(${z / 24})"><title>${c === ANC_LEAD ? 'The picked card is anchored to this one (it leads)' : 'Anchored to the picked card (it follows)'}</title><circle cx="12" cy="12" r="11" fill="${c}" stroke="#fff" stroke-width="1.5"/><g fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="6.5" r="2"/><path d="M12 8.5V19M8 11.5h8M6.5 14.5a5.5 5 0 0 0 11 0"/></g></g>`; }
   svg.innerHTML = h;
 }
 const ancRow = n => {   // in the card panel
   if (!ancOn()) return '';
   const a = n.anchor && getNode(n.anchor), kids = ancKids(n.id).length; if (!a && !kids) return '';
-  return `<div class="ancrow">${a ? `<span class="muted">Anchored to</span><button class="btn" data-goto="${esc(a.id)}" title="Go to it">${esc(a.title || 'Untitled')}</button><button class="btn" data-anc="off" title="It stays where it is, and stops moving with that card">Let go</button>` : ''}${kids ? `<span class="muted">${kids} card${kids === 1 ? ' is' : 's are'} anchored to this one</span>` : ''}</div>`;
+  return `<div class="ancrow">${a ? `${ancIcon(ANC_LEAD, 16)}<span class="muted">Anchored to</span><button class="btn" data-goto="${esc(a.id)}" title="Go to it">${esc(a.title || 'Untitled')}</button><button class="btn" data-anc="off" title="It stays where it is, and stops moving with that card">Let go</button>` : ''}${kids ? `${ancIcon(ANC_FOLLOW, 16)}<span class="muted">${kids} card${kids === 1 ? ' is' : 's are'} anchored to this one</span>` : ''}</div>`;
 };
 // Two boxes joined (a wormhole). Inside a box, its right edge can be joined straight onto another box from the level
 // above, so cards can be dragged from one to the other: both boxes' cards are laid out in one canvas, the second box
@@ -6030,6 +6037,7 @@ BLUR_PANELS.forEach(sel => $(sel) && blurRO.observe($(sel)));
 addEventListener('resize', updateBlurClip);
 let mmTimer = 0;
 function applyView() {
+  { const as = $('#ancSel'); if (as && as.firstChild && as._s !== view.s) { as._s = view.s; queueMicrotask(ancTethers); } }   // (anchor symbols: the same size on screen, redrawn only when the zoom changes)
   if (!zooming) updateGroupEdges();
   const px = v => zooming ? v : Math.round(v);   // (whole pixels when still; free while a zoom glides)
   world.style.transform = `translate(${px(view.tx)}px,${px(view.ty)}px) scale(${view.s})`;
