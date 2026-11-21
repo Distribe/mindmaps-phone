@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-Jqns3C8sdXCIwGQS8PwCatf9JbgUKtZ8T8k/4lPMYDc=' 'sha256-nXhZwsGOrDdegrB2iiWrfCXzAWJD9HRRD6zdPRXyhvo='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-BGpM9N8yXsLqSNSO7yGSs7my+OWCMGSfoZRZzlnzYn4=' 'sha256-mqFN8STOtsO+uGhDeXz9kRp4Kkq7fOeh5y6z/7W9Nps='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1119,7 +1119,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '36 (21 Nov 2026, 00:46)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '37 (21 Nov 2026, 00:51)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -10392,7 +10392,7 @@ document.addEventListener('drop', e => {
 function renderKeyBox() {
   const box = $('#ckBox'); if (!box || typeof state === 'undefined' || !state) return;
   if (!state.settings.keyBox || REF || !$('#settings').hidden || !$('#help').hidden) { if (!box.hidden) { box.hidden = true; updateBlurClip(); } return; }
-  const html = '<div class="label">Colour key</div>' + ckey().map((k, i) => k.hide ? '' : `<div class="ckb" data-ki="${i}"><i style="background:${shown(k.color)}${k.outline ? `;outline:2px solid ${k.outline};outline-offset:1px` : ''}"></i><span>${esc(k.label || '–')}</span></div>`).reverse().join('');
+  const html = '<div class="label">Colour key</div>' + ckey().map((k, i) => k.hide ? '' : `<div class="ckb" data-ki="${i}"><i style="background:${shown(k.color)}"></i><span>${esc(k.label || '–')}</span></div>`).reverse().join('');
   const nomm = $('#minimap').hidden, was = box.hidden;
   if (box._h !== html) { box.innerHTML = html; box._h = html; }
   box.classList.toggle('nomm', nomm); box.hidden = false;
