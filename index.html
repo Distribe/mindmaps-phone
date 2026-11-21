@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-o6LgWkT2xrBmGQs35kTK4Dyt7leBciVBKqozDOn8VU4=' 'sha256-l8DJyaMkEiPyY6TUcG8sUAC5cYXkdvM1j3NbiJd2j+E='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-XKbXIEbDSuvMDajNXxwS9P/2Mse54N1ybyfcsWzVT70=' 'sha256-IIDIIi5i6GFyuqKQl12oI/mrZQhpTteplhtlbJIDJ4A='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -580,6 +580,15 @@ body.ref #detail [data-act="edit"],body.ref #detail [data-o="edit"],body.ref #de
 #slvMenu .slvCols button{width:18px;height:18px;padding:0;border-radius:50%;border:2px solid transparent;cursor:pointer}
 #slvMenu .slvCols button.on{border-color:var(--map-ink,#333)}
 #clipMenu{min-width:170px}
+#cbox{position:fixed;z-index:1002;width:224px;padding:10px;display:flex;flex-direction:column;gap:9px;box-sizing:border-box}
+#cbox[hidden]{display:none}
+#cbox .cbsv{position:relative;height:140px;border-radius:var(--r-sm);background-image:linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,rgba(255,255,255,0));cursor:crosshair;touch-action:none}
+#cbox .cbsvk{position:absolute;width:12px;height:12px;margin:-6px 0 0 -6px;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.45);pointer-events:none;box-sizing:border-box}
+#cbox .cbhue{position:relative;height:12px;border-radius:6px;background:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00);cursor:pointer;touch-action:none}
+#cbox .cbhuek{position:absolute;top:-2px;width:8px;height:16px;margin-left:-4px;border:2px solid #fff;border-radius:3px;box-shadow:0 0 0 1px rgba(0,0,0,.45);pointer-events:none;box-sizing:border-box}
+#cbox .cbrow{display:flex;align-items:center;gap:8px}
+#cbox .cbsw{width:24px;height:24px;border-radius:var(--r-sm);border:1px solid var(--line-strong);flex:none;box-sizing:border-box}
+#cbox .cbhex{flex:1;min-width:0;height:24px;box-sizing:border-box;padding:0 6px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--panel-2);color:var(--ink);font:var(--t-body) var(--ui)}
 /* tabs: one per open map, along the title strip (the empty part of the strip still moves the window) */
 #tabs{display:flex;align-items:stretch;height:var(--app-top);min-width:0;flex:0 1 auto;padding-left:8px;overflow:hidden;app-region:no-drag;-webkit-app-region:no-drag}
 #tabs .tab{display:flex;align-items:center;gap:5px;min-width:72px;max-width:210px;flex:0 1 210px;padding:0 3px 0 10px;font-size:11px;color:var(--muted);border-right:1px solid var(--line);cursor:default}
@@ -1119,7 +1128,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '38 (21 Nov 2026, 22:07)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '39 (21 Nov 2026, 22:23)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -6459,7 +6468,7 @@ function renderCard(box, n, edit) {
         ${others.length ? '<input type="text" id="fConnect" autocomplete="off" placeholder="+ Connect to…  (type to search)">' : ''}
         <div class="p-foot">
           <div class="palette">${ckey().map(k => `<button data-color="${k.color}" class="${k.color.toLowerCase() === n.color.toLowerCase() ? 'cur' : ''}" style="background:${shown(k.color)}" title="${esc(k.label || 'Card colour')}"></button>`).join('')}
-            <input type="color" id="fColor" value="${n.color}" title="Any colour">${PICK_BTN}</div>
+            <input type="color" id="fColor" value="${n.color}" title="Any colour">${inApp() ? '' : PICK_BTN}</div>
           <span class="grow"></span>
           ${canEject() ? '<button class="btn" data-act="eject" title="Take this card out of the box it’s in: it goes just to the right of the box, on the level above (you can undo)">Take out of the box</button>' : ''}
           <button class="btn danger" data-act="delete" title="Delete this card (you can undo)">Delete</button>
@@ -6575,7 +6584,7 @@ function renderOther(box) {
         ${choice('data-lsize', [['0.8', 'Small', 'Smaller words'], ['1', 'Normal', 'The usual size'], ['1.3', 'Large', 'Bigger words'], ['1.6', 'Larger', 'Bigger still']], String(l.ls || 1))}
         <div class="sec">Colour</div>
         <div class="palette">${['', ...LINE_COLORS].map(c => `<button data-lcolor="${c}" class="${(l.color || '') === c ? 'cur' : ''}" style="background:${c ? shown(c) : 'var(--link)'}" title="${c ? 'Line colour' : 'The usual grey'}"></button>`).join('')}
-          <input type="color" id="lColor" value="${l.color || '#9a9ca3'}" title="Any colour">${PICK_BTN}</div>
+          <input type="color" id="lColor" value="${l.color || '#9a9ca3'}" title="Any colour">${inApp() ? '' : PICK_BTN}</div>
         ${(() => { const seen = new Set(), ks = ckey().filter(k => k.color && !seen.has(k.color.toLowerCase()) && seen.add(k.color.toLowerCase()));   // the colour key's colours, in a second row
           return ks.length ? `<div class="palette" style="margin-top:7px">${ks.map(k => `<button data-lcolor="${esc(k.color)}" class="${(l.color || '').toLowerCase() === k.color.toLowerCase() ? 'cur' : ''}" style="background:${shown(k.color)}" title="${esc(k.label || 'Colour key colour')}"></button>`).join('')}</div>` : ''; })()}
         <label class="chk" style="margin:12px 0 0;display:flex"><input type="checkbox" data-lalong="1" ${l.flat ? '' : 'checked'}>Label runs along the line</label>
@@ -6596,7 +6605,7 @@ function renderOther(box) {
           <div class="sec">Name</div><input type="text" data-tg="name" value="${esc(t.name)}" style="width:100%">
           <label class="chk" style="margin:12px 0 0"><input type="checkbox" data-gchk="1" ${t.group ? 'checked' : ''}>Show as a group (shaded area on the map)</label>
           <div class="sec">Notes</div><textarea class="ed n" data-tg="note" placeholder="Notes about this tag or group…">${esc(t.note || '')}</textarea>
-          <div class="sec">Colour</div><div class="tagpal">${TAG_COLORS.map(c => `<button data-tcolor="${c}" class="${c === t.color ? 'cur' : ''}" style="background:${c}" title="Tag colour"></button>`).join('')}<input type="color" data-tg="color" value="${t.color}" title="Any colour">${PICK_BTN}</div>
+          <div class="sec">Colour</div><div class="tagpal">${TAG_COLORS.map(c => `<button data-tcolor="${c}" class="${c === t.color ? 'cur' : ''}" style="background:${c}" title="Tag colour"></button>`).join('')}<input type="color" data-tg="color" value="${t.color}" title="Any colour"></div>
           <div class="p-foot"><span class="muted">${tagCount} use this tag</span><span class="grow"></span><button class="btn danger" data-o="tdel" title="Delete this tag (cards are kept; you can undo)">Delete tag</button></div></div>`
       : head(strip + `<div class="d-title">${esc(t.name)}</div>`, `<button class="btn solid" data-o="edit" title="Rename, recolour or delete this tag (E)">Edit</button>`) + `<div class="p-body">
           <div class="muted">${tagCount}</div>
@@ -10281,12 +10290,10 @@ function tagSwatches(cur) {
   const inKey = new Set(ckey().map(k => k.color.toLowerCase())), cs = [...new Set(state.tags.map(t => t.color.toLowerCase()))].filter(c => !inKey.has(c));
   return cs.length ? '<span class="psep"></span>' + cs.map(c => `<button data-color="${c}" class="${c === String(cur).toLowerCase() ? 'cur' : ''}" style="background:${shown(c)}" title="${esc(state.tags.filter(t => t.color.toLowerCase() === c).map(t => t.name).join(', '))} (tag colour)"></button>`).join('') : '';
 }
-// The dropper, beside each "any colour" box. In the app: the pointer turns to a cross over the whole screen, and the next
-// click anywhere (this map, another program, a picture) takes the colour there; on a card, a tag, a group's name, a
-// line or a colour in the key, it takes that thing's exact colour rather than the pixel's. Esc or a right-click stops.
-// Elsewhere (the phone, a browser): the next tap on the map takes the exact colour of what's tapped.
-// The colour goes into the box beside it, just as if it had been picked there.
-const PICK_BTN = '<button type="button" class="btn icon pickc" data-pick title="Dropper: click it, then click any colour on the screen to take it (Esc stops)"><svg viewBox="0 0 16 16"><path d="M10.5 2.5a1.8 1.8 0 0 1 2.6 2.6l-1.2 1.2.7.7-1 1-.7-.7-5 5H3.5v-2.4l5-5-.7-.7 1-1 .7.7z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg></button>';
+// The pipette, beside a card's or a line's "any colour" off the app (the phone, a browser): the next tap on the map
+// takes the exact colour of what's tapped (a card, a tag, a group's name, a line, a colour in the key). Esc stops.
+// (In the app, the colour box itself has a dropper that works anywhere on the screen: cbox, below.)
+const PICK_BTN = '<button type="button" class="btn icon pickc" data-pick title="Pick a colour from the map: tap a card, a tag, a group&rsquo;s name or a line to take its exact colour"><svg viewBox="0 0 16 16"><path d="M10.5 2.5a1.8 1.8 0 0 1 2.6 2.6l-1.2 1.2.7.7-1 1-.7-.7-5 5H3.5v-2.4l5-5-.7-.7 1-1 .7.7z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg></button>';
 let picking = null;
 const pickBox = b => { const p = b.previousElementSibling; return p && p.matches('input[type=color]') ? p : b.parentElement && b.parentElement.querySelector('input[type=color]'); };
 function pickPut(inp, c) {
@@ -10295,21 +10302,12 @@ function pickPut(inp, c) {
   inp.dispatchEvent(new Event('input', {bubbles: true})); inp.dispatchEvent(new Event('change', {bubbles: true}));
   toast('Colour taken.');
 }
-async function pickStart(btn) {
+function pickStart(btn) {
   const inp = pickBox(btn); if (!inp || picking) return;
-  if (inApp() && window.pywebview.api.pick_colour) {
-    picking = {inp, screen: true}; toast('Click any colour on the screen to take it (Esc or a right-click: stop).', true);
-    let r = null; try { r = await app('pick_colour'); } catch (e) {}
-    picking = null; hideToast();
-    if (!r || !r.color) return;
-    let c = r.color;
-    if (r.over) { const el = document.elementFromPoint(r.x / devicePixelRatio, r.y / devicePixelRatio), e = el && colourAt(el); if (e) c = e; }
-    pickPut(inp, c); return;
-  }
   picking = {inp}; document.body.classList.add('picking');
   toast('Tap a card, a tag, a group’s name or a line to take its colour (Esc: stop).', true);
 }
-function pickStop() { if (picking && picking.screen) return; picking = null; document.body.classList.remove('picking'); }
+function pickStop() { picking = null; document.body.classList.remove('picking'); }
 function colourAt(el) {
   const card = el.closest('.card[data-id]'); if (card && !card.closest('#detail')) { const n = getNode(card.dataset.id); return n && n.color; }
   const tg = el.closest('[data-tag], .glabel[data-group], [data-group]'); if (tg) return tagColor(tg.dataset.tag || tg.dataset.group);
@@ -10318,26 +10316,106 @@ function colourAt(el) {
   const sw = el.closest('[data-color], [data-lcolor], [data-tcolor]'); if (sw) return sw.dataset.color || sw.dataset.lcolor || sw.dataset.tcolor;
   return null;
 }
-document.addEventListener('pointerdown', e => {   // (not in the app: the tap that takes the colour)
-  if (!picking || picking.screen) return;
+document.addEventListener('pointerdown', e => {   // the tap that takes the colour
+  if (!picking) return;
   if (e.target.closest('[data-pick]')) return;
   e.preventDefault(); e.stopImmediatePropagation();
   const c = colourAt(e.target), p = picking; pickStop(); hideToast();
   pickPut(p.inp, c);
 }, true);
-document.addEventListener('click', e => { if (picking && !picking.screen && !e.target.closest('[data-pick]')) { e.preventDefault(); e.stopImmediatePropagation(); } }, true);
-document.addEventListener('keydown', e => { if (picking && !picking.screen && e.key === 'Escape') { e.stopImmediatePropagation(); pickStop(); hideToast(); } }, true);
-document.addEventListener('click', e => { const b = e.target.closest('[data-pick]'); if (!b) return; e.preventDefault(); e.stopPropagation(); if (picking && !picking.screen) { pickStop(); hideToast(); } else pickStart(b); }, true);
+document.addEventListener('click', e => { if (picking && !e.target.closest('[data-pick]')) { e.preventDefault(); e.stopImmediatePropagation(); } }, true);
+document.addEventListener('keydown', e => { if (picking && e.key === 'Escape') { e.stopImmediatePropagation(); pickStop(); hideToast(); } }, true);
+document.addEventListener('click', e => { const b = e.target.closest('[data-pick]'); if (!b) return; e.preventDefault(); e.stopPropagation(); if (picking) { pickStop(); hideToast(); } else pickStart(b); }, true);
+
+// The app's own colour box, in place of the browser's (whose dropper can't read the screen in the app): the same
+// square and hue strip, a hex box, and a dropper that works. Click it, and the pointer turns to a cross over the whole
+// screen; the next click anywhere (this map, another program, a picture) takes the colour there; on a card, a tag, a
+// group's name, a line or a colour in the key, that thing's exact colour. Esc or a right-click stops. The colour box
+// it belongs to changes as you go, just as it does with the browser's box; a click outside (or Enter, or Esc) closes it.
+const cbox = {inp: null, h: 0, s: 0, v: 0, dirty: false, busy: false};
+function hexHsv(hex) {
+  const n = parseInt(hex.slice(1), 16), r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
+  const mx = Math.max(r, g, b), d = mx - Math.min(r, g, b);
+  const h = !d ? 0 : mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return {h: h * 60, s: mx ? d / mx : 0, v: mx};
+}
+function hsvHex(h, s, v) {
+  const f = k => { const x = (k + h / 60) % 6; return v - v * s * Math.max(0, Math.min(x, 4 - x, 1)); };
+  return '#' + [f(5), f(3), f(1)].map(x => Math.round(x * 255).toString(16).padStart(2, '0')).join('');
+}
+function cboxShow(keepHex) {
+  const el = $('#cbox'), c = hsvHex(cbox.h, cbox.s, cbox.v);
+  el.querySelector('.cbsv').style.backgroundColor = hsvHex(cbox.h, 1, 1);
+  const k = el.querySelector('.cbsvk'); k.style.left = cbox.s * 100 + '%'; k.style.top = (1 - cbox.v) * 100 + '%';
+  el.querySelector('.cbhuek').style.left = cbox.h / 360 * 100 + '%';
+  el.querySelector('.cbsw').style.background = c;
+  if (!keepHex) el.querySelector('.cbhex').value = c;
+  return c;
+}
+function cboxSet(keepHex) {   // the box's colour into the colour box it belongs to, as the browser's would as you go
+  const c = cboxShow(keepHex), i = cbox.inp; if (!i || !i.isConnected || i.value === c) return;
+  i.value = c; cbox.dirty = true; i.dispatchEvent(new Event('input', {bubbles: true}));
+}
+function cboxClose() {
+  const el = $('#cbox'); if (!el || el.hidden || cbox.busy) return;
+  el.hidden = true; const i = cbox.inp, d = cbox.dirty; cbox.inp = null; cbox.dirty = false;
+  if (i && i.isConnected && d) i.dispatchEvent(new Event('change', {bubbles: true}));
+}
+function cboxOpen(inp) {
+  let el = $('#cbox');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'cbox'; el.className = 'panel'; el.hidden = true;
+    el.innerHTML = '<div class="cbsv"><div class="cbsvk"></div></div><div class="cbhue"><div class="cbhuek"></div></div>'
+      + '<div class="cbrow"><button type="button" class="btn icon" data-cbdrop title="Dropper: click any colour on the screen to take it (Esc stops)"><svg viewBox="0 0 16 16" width="16" height="16"><path d="M10.5 2.5a1.8 1.8 0 0 1 2.6 2.6l-1.2 1.2.7.7-1 1-.7-.7-5 5H3.5v-2.4l5-5-.7-.7 1-1 .7.7z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg></button>'
+      + '<span class="cbsw"></span><input class="cbhex" maxlength="7" spellcheck="false" title="Hex colour"></div>';
+    document.body.appendChild(el);
+    const drag = (sel, f) => { const a = el.querySelector(sel);
+      const at = e => { const r = a.getBoundingClientRect(); f(clamp((e.clientX - r.left) / r.width, 0, 1), clamp((e.clientY - r.top) / r.height, 0, 1)); cboxSet(); };
+      a.addEventListener('pointerdown', e => { a.setPointerCapture(e.pointerId); at(e); });
+      a.addEventListener('pointermove', e => { if (a.hasPointerCapture(e.pointerId)) at(e); }); };
+    drag('.cbsv', (x, y) => { cbox.s = x; cbox.v = 1 - y; });
+    drag('.cbhue', x => { cbox.h = Math.min(x * 360, 359.9); });
+    const hex = el.querySelector('.cbhex');
+    hex.addEventListener('input', () => { const m = /^#?([0-9a-f]{6}|[0-9a-f]{3})$/i.exec(hex.value.trim()); if (!m) return;
+      const x = m[1].length === 3 ? m[1].replace(/./g, '$&$&') : m[1]; Object.assign(cbox, hexHsv('#' + x.toLowerCase())); cboxSet(true); });
+    hex.addEventListener('keydown', e => { if (e.key === 'Enter') cboxClose(); });
+    el.querySelector('[data-cbdrop]').addEventListener('click', async () => {
+      if (cbox.busy || !window.pywebview || !window.pywebview.api.pick_colour) return;
+      cbox.busy = true; toast('Click any colour on the screen to take it (Esc or a right-click: stop).', true);
+      let r = null; try { r = await app('pick_colour'); } catch (e) {}
+      cbox.busy = false; hideToast();
+      if (!r || !r.color) return;
+      let c = r.color;
+      if (r.over) { const t = document.elementFromPoint(r.x / devicePixelRatio, r.y / devicePixelRatio), x = t && !t.closest('#cbox') && colourAt(t); if (x && /^#[0-9a-f]{6}$/i.test(x)) c = x.toLowerCase(); }
+      Object.assign(cbox, hexHsv(c)); cboxSet();
+    });
+  }
+  cbox.inp = inp; cbox.dirty = false; Object.assign(cbox, hexHsv(safeColor(inp.value, '#000000').toLowerCase())); cboxShow();
+  el.hidden = false;
+  const r = inp.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
+  el.style.left = clamp(r.left, 8, innerWidth - w - 8) + 'px';
+  el.style.top = (r.bottom + 6 + h <= innerHeight - 8 ? r.bottom + 6 : Math.max(8, r.top - h - 6)) + 'px';
+}
+document.addEventListener('click', e => {   // in the app, a colour box opens this one instead of the browser's
+  const i = e.target.closest && e.target.closest('input[type=color]'); if (!i || !inApp()) return;
+  e.preventDefault();
+  const open = $('#cbox') && !$('#cbox').hidden && cbox.inp === i; cboxClose(); if (!open) cboxOpen(i);
+}, true);
+document.addEventListener('pointerdown', e => {   // a click outside closes it (the colour stays)
+  const el = $('#cbox'); if (!el || el.hidden || cbox.busy || el.contains(e.target) || e.target === cbox.inp) return;
+  cboxClose();
+}, true);
+document.addEventListener('keydown', e => { const el = $('#cbox'); if (e.key === 'Escape' && el && !el.hidden && !cbox.busy) { e.stopImmediatePropagation(); cboxClose(); } }, true);
 function keyEditor() {
   const counts = new Map(), walk = ns => { for (const n of ns) { const c = n.color.toLowerCase(); counts.set(c, (counts.get(c) || 0) + 1); if (n.inner) walk(n.inner.nodes); } };
   walk(fullState().nodes);
   return `<div class="ckey">${ckey().map((k, i) => ({k, i})).reverse().map(({k, i}) => `<div class="ckrow${i === DEF ? ' fixed' : ''}" data-ck="${i}"${i !== DEF ? ' draggable="true"' : ''}>
       <span class="ckgrip" title="${i === DEF ? 'Base: new cards start in this colour, so it stays here' : i === SUB ? 'The faded tier (the lowest): drag it up to make it an ordinary tier, or drag another colour here to make that one faded' : 'Drag to move this tier up or down (to the bottom: the faded tier)'}">${i === DEF ? '–' : '⋮⋮'}</span>
-      <input type="color" value="${k.color}" data-ckc title="Change this colour (its cards follow)">${PICK_BTN}
+      <input type="color" value="${k.color}" data-ckc title="Change this colour (its cards follow)">
       <input type="text" class="catname" value="${esc(k.label)}" data-ckl placeholder="Label">
       <span class="muted" title="Cards in this colour">${counts.get(k.color.toLowerCase()) || 0}</span>
       <label class="chk" title="Show this colour in the key on the map (untick: it's just for its cards)" style="margin:0 2px"><input type="checkbox" data-ckshow ${k.hide ? '' : 'checked'}></label>
-      <label class="chk" title="An outline round its cards, to make them stand out" style="margin:0 2px;white-space:nowrap"><input type="checkbox" data-ckout ${k.outline ? 'checked' : ''}>Outline</label>${k.outline ? `<input type="color" value="${k.outline}" data-ckoc title="The outline's colour">${PICK_BTN}` : ''}
+      <label class="chk" title="An outline round its cards, to make them stand out" style="margin:0 2px;white-space:nowrap"><input type="checkbox" data-ckout ${k.outline ? 'checked' : ''}>Outline</label>${k.outline ? `<input type="color" value="${k.outline}" data-ckoc title="The outline's colour">` : ''}
       ${i >= 2 ? `<button class="btn icon" data-ckdel title="Take this colour out (its cards go to Base)">${ICON_X}</button>` : '<span class="ckgap"></span>'}</div>`).join('')}
     <div style="margin-top:8px"><button class="btn" data-ckadd>+ Add a colour</button></div></div>`;
 }
@@ -10436,7 +10514,7 @@ function catCount(test, word) {
 function renderCats() {
   $('#catKey').innerHTML = keyEditor() + `<label class="chk" style="margin-top:10px;display:flex"><input type="checkbox" data-keybox ${state.settings.keyBox ? 'checked' : ''}>Show the colour key on the map</label>`;
   $('#catTags').innerHTML = state.tags.map((t, i) => `<div class="catrow" data-i="${i}">
-      <input type="color" value="${t.color}" data-act="tcolor" title="Tag colour">${PICK_BTN}
+      <input type="color" value="${t.color}" data-act="tcolor" title="Tag colour">
       <input type="text" class="catname" value="${esc(t.name)}" data-act="tname">
       <span class="muted">${catCount(n => n.tags.includes(t.name), 'cards')}</span>
       <button data-act="tdel" class="btn danger" title="Delete this tag (cards are kept)">Delete</button></div>`).join('') || '<p>No tags yet.</p>';
@@ -10460,7 +10538,7 @@ function markEditor(f, i) {
         ${k < 0 ? '' : `<button class="btn icon" data-mke="del" title="Remove this state"><svg viewBox="0 0 16 16"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>`}</div>`
       + (open ? `<div class="mkchoose" data-o="${k}">
         <div class="mkicons">${Object.keys(MARK_ICONS).filter(ic => ic !== 'none' || k < 0).map(ic => `<button data-mke="icon" data-v="${ic}" class="${ic === look.icon ? 'cur' : ''}" title="${MARK_ICONS[ic][0]}">${markBadge({icon: ic, color: look.color})}</button>`).join('')}</div>
-        <div class="mkcols">${MARK_COLORS.map(([c, nm]) => `<button data-mke="col" data-v="${c}" class="${c === look.color ? 'cur' : ''}" style="background:${c}" title="${nm}"></button>`).join('')}<input type="color" data-mke="colany" value="${look.color}" title="Any colour">${PICK_BTN}</div></div>` : ''); };
+        <div class="mkcols">${MARK_COLORS.map(([c, nm]) => `<button data-mke="col" data-v="${c}" class="${c === look.color ? 'cur' : ''}" style="background:${c}" title="${nm}"></button>`).join('')}<input type="color" data-mke="colany" value="${look.color}" title="Any colour"></div></div>` : ''); };
   return `<div class="mkset" data-fi="${i}">
     <p class="mkhelp">A click on a card's mark moves it to the next state below, and after the last back to Not set (Shift-click: back one). Click a symbol here to change it.</p>
     ${row(m.blank, -1)}${m.opts.map((o, k) => row(o, k)).join('')}
