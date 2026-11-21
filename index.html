@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-3r9ZBD2rpgRLxgpYSa9I7YR8ztzMTwB96ub/gckTqM0=' 'sha256-SwxqTqlPO/RglFgJbBwWeUJyOK37XX53VB3LucN68iI='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-AE+Q6/OVMyySDdG8mF77roFtSRDgoBQnmwBBjxMEAsY=' 'sha256-myBCgqfto4U74lDljBfGe8BuebcKMEzHeq0ocXADFOU='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1128,7 +1128,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '41 (21 Nov 2026, 23:00)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '42 (21 Nov 2026, 23:14)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -1890,11 +1890,11 @@ function cardMarks(n) {   // the badges in a card's top-right corner
   return '<div class="mks">' + fs.map(f => { const m = markOf(f), o = markNow(n, f), tap = m.click !== false && !REF;
     return markBadge(o || m.blank, tap ? 'tap' : '', `data-mk="${esc(f)}" title="${esc(f)}: ${esc(o ? o.name : 'not set')}${tap ? ' (click to change; Shift-click: back one)' : ''}"`); }).join('') + '</div>';
 }
-function markStep(n, f, back) {   // on to the next state (or back one); after the last, Not set
-  const m = markOf(f); if (!m || !n) return;
+function markStep(n, f, back, also = []) {   // on to the next state (or back one); after the last, Not set
+  const m = markOf(f); if (!m || !n) return;   // (also: other cards that are set to the same, so they all match)
   const L = m.opts.length + 1, i = m.opts.findIndex(o => o.name === n.fields[f]) + 1, j = (i + (back ? L - 1 : 1)) % L;
   pushUndo();
-  if (j) n.fields[f] = m.opts[j - 1].name; else delete n.fields[f];
+  for (const c of [n, ...also]) { if (!c || !c.fields) continue; if (j) c.fields[f] = m.opts[j - 1].name; else delete c.fields[f]; }
   changed();
 }
 function normMarks(o, fields) {   // (a map being opened: each mark field's states, checked)
@@ -11282,7 +11282,10 @@ canvas.addEventListener('pointerup', e => {
   riderFree = d.type === 'node' && d.moved && !d.set ? d.id : '';   // (a card just let go stays where it was dropped until riderDrop has looked)
   endDragHold(); riderFree = '';
   canvas.classList.remove('panning');
-  if (d.type === 'mark') { const n = getNode(d.id); if (n) markStep(n, d.f, d.back); return; }
+  if (d.type === 'mark') {   // (on a card among several picked: all the picked cards are set to what this one changes to)
+    const n = getNode(d.id), all = n && multiSel.has(n.id) && multiCount() > 1 ? [...multiSel].filter(id => id !== n.id).map(getNode).filter(Boolean) : [];
+    if (n) markStep(n, d.f, d.back, all); return;
+  }
   if (d.type === 'skedit') { skEditUp(); return; }
   if (d.type === 'skbutton') return;
   if (d.type === 'cw') { if (d.moved) { const n = getNode(d.id), def = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card-w')) || 224;
