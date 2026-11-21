@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-xI6+4qC6P5xOufNXpHdv5YYZ5v5TO+V58nBo2CZa28U=' 'sha256-UbzCjKUdHTtj7nRMU58XniURPLk5b/vvxvyxA/eOny8='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-8HlKZKcTgfwWcraoC2BF9v6tOsBUfpy/QEbCFqOSsl4=' 'sha256-PdhhUpqLKp2x9uBEKibVBUIWDnIee+jvBFRwkEEztcE='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1119,7 +1119,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '33 (21 Nov 2026, 00:29)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '34 (21 Nov 2026, 00:35)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -2651,12 +2651,13 @@ function clampToBox(x, y, w, h) {   // the top-left corner of something w by h, 
 // wall then lies folded down, as when its edge is dragged). While the drag lasts only the lid's edge along the top
 // holds it. (No more than the box can grow: 4 widths each way.)
 let boxLoose = false;
+const BOX_GROW = 20;   // how far a box can grow each way, in its own widths (zooming out inside a box always goes far enough to see it all: zoomFloor)
 function boxFitCards(ids) {
   const c = holderCard(), a = boxArea(); if (!c || !a || flatKey() || REF) return false;
   let x0 = Infinity, x1 = -Infinity, y1 = -Infinity;
   for (const id of ids) { const b = cardBox(id); if (b) { x0 = Math.min(x0, b.x); x1 = Math.max(x1, b.x + b.w); y1 = Math.max(y1, b.y + b.h); } }
   if (x1 === -Infinity) return false;
-  const x = boxExt(c), cap = 4 * frameRect().x1;
+  const x = boxExt(c), cap = BOX_GROW * frameRect().x1;
   const g = {l: Math.min(cap, x.l + Math.max(0, Math.ceil(a.x0 - x0))), r: Math.min(cap, x.r + Math.max(0, Math.ceil(x1 - a.x1))), b: Math.min(cap, x.b + Math.max(0, Math.ceil(y1 - a.y1)))};
   if (g.l === x.l && g.r === x.r && g.b === x.b) return false;
   c.boxExt = g; flapA = Math.PI / 2; setFlap(flapA);
@@ -2975,7 +2976,7 @@ function boxGripDown(e, grip) {
   const need = {l: Math.max(0, bw + m - lo), r: Math.max(0, hi - (W - bw - m)), b: Math.max(0, low - (H - bw - m))};
   let moved = false;
   const move = ev => {
-    const p = toWorld(ev), snap = 12 / view.s, x = {...x0}, set = (d, v) => { x[d] = Math.max(need[d], v < snap ? 0 : Math.min(v, 4 * W)); };
+    const p = toWorld(ev), snap = 12 / view.s, x = {...x0}, set = (d, v) => { x[d] = Math.max(need[d], v < snap ? 0 : Math.min(v, BOX_GROW * W)); };
     if (grip.includes('l')) set('l', x0.l - (p.x - p0.x));
     if (grip.includes('r')) set('r', x0.r + (p.x - p0.x));
     if (grip.includes('b')) set('b', x0.b + (p.y - p0.y));
@@ -4543,7 +4544,7 @@ function wormGripDown(e, which) {
   const move = ev => {
     const p = toWorld(ev), snap = 12 / view.s;
     let v = d === 'l' ? x0.l - (p.x - p0.x) : d === 'r' ? x0.r + (p.x - p0.x) : x0.b + (p.y - p0.y);
-    v = Math.round(Math.max(need[d], v < snap ? 0 : Math.min(v, 4 * g.W))); if (v === g.ext[d]) return;
+    v = Math.round(Math.max(need[d], v < snap ? 0 : Math.min(v, BOX_GROW * g.W))); if (v === g.ext[d]) return;
     if (!moved) { moved = true; pushUndo(); }
     if (which === 'Ar') { wormShift(v - g.ext.r); renderMap(); return; }   // (the join: the other box comes too)
     g.ext[d] = v; wormDraw();
@@ -4601,7 +4602,7 @@ function wormSplit() {
   const skSide = state.sketches.map(k => k.anchor && where.get(k.anchor) || (b => side(b.x + b.w / 2))(skBox(skLive(k))));   // (a drawing anchored to a card goes with it)
   const ext = {A: {...w.gA.ext}, B: {...w.gB.ext}};
   for (const sd of ['A', 'B']) {
-    const g = sd === 'A' ? w.gA : w.gB, a = wormArea(g), cap = 4 * g.W, ns = state.nodes.filter(n => where.get(n.id) === sd);
+    const g = sd === 'A' ? w.gA : w.gB, a = wormArea(g), cap = BOX_GROW * g.W, ns = state.nodes.filter(n => where.get(n.id) === sd);
     let needL = 0, needR = 0, needB = 0;
     for (const n of ns) {
       const [W, H] = size.get(n.id); if (sd === 'B') n.x -= w.dx;
@@ -8134,8 +8135,15 @@ function spaceFit() {
   }, {passive: false});
   addEventListener('resize', drawSpaceSoon);
 }
+// The furthest out you can zoom: 10%, or inside a box (or two joined), far enough to see all of it however big it's grown.
+function zoomFloor() {
+  let w = 0, h = 0; const a = boxArea();
+  if (worm) { w = worm.dx + worm.gB.W + worm.gB.ext.r + worm.gA.ext.l; h = Math.max(worm.gA.H + worm.gA.ext.b, worm.gB.H + worm.gB.ext.b); }
+  else if (a) { w = a.x1 - a.x0; h = a.y1 - a.y0; }
+  return w ? Math.min(0.1, 0.8 * Math.min(innerWidth / (w + 200), innerHeight / (h + 200))) : 0.1;
+}
 function zoomAt(mx, my, k) {
-  const s2 = clamp(view.s * k, 0.1, 3), k2 = s2 / view.s;
+  const s2 = clamp(view.s * k, zoomFloor(), 3), k2 = s2 / view.s;
   view.tx = mx - (mx - view.tx) * k2; view.ty = my - (my - view.ty) * k2; view.s = s2;
   applyView(); autosaveSoon();
 }
