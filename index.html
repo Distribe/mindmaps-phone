@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-QQm2FZ8Wj+ugZq4TcoSQERZ4/CDDB5WIPJvB8hqAaHg=' 'sha256-pmnWfJ5V4MT2PIQCwuYfyxiOD2Q5QzVUOMq2UvYpY4Q='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-bYHsuU3xqwbHxdGHA5cwjqMjDNMMoajlrJUCP3PH4kk=' 'sha256-5xHxk4sOj4XsSmyIOKCdsAeTzLaOC2rcQ1gpW5irQ3I='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -745,6 +745,8 @@ mark.hit{background:#ffe14d;color:#16181d;border-radius:2px;padding:0}   /* the 
 #wormFrame{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none}
 #wormFrame .wfBox{fill:color-mix(in srgb,#fff 45%,var(--canvas));stroke:color-mix(in srgb,var(--accent) 30%,transparent);stroke-width:3}
 #wormFrame .wfJoin{stroke:var(--accent);stroke-width:5;stroke-linecap:round;stroke-dasharray:0 16}
+#wormFrame .wfGrip{stroke:color-mix(in srgb,var(--accent) 45%,transparent);stroke-width:8;stroke-linecap:round}
+#wormFrame .wfHit{stroke:transparent;stroke-width:44;pointer-events:stroke}
 #wormFrame .wfT{font-size:26px;font-weight:600;fill:color-mix(in srgb,var(--accent) 75%,transparent)}
 #toast{position:fixed;left:50%;bottom:var(--edge);transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:6px 6px 6px 16px;z-index:50;font-size:var(--t-small);max-width:min(560px,90vw)}
 #toast span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -1117,7 +1119,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '31 (21 Nov 2026, 00:20)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '32 (21 Nov 2026, 00:25)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -4512,25 +4514,58 @@ function wormStart(bId) {
   state.sketches = [...(ia.sketches || []), ...(ib.sketches || []).map(shiftSk)];
   state.sleeves = state.sleeves.filter(v => v.lv !== lvA && v.lv !== lvB).concat(sl);
   labelPos.clear(); frameSig = '';
-  wormFit(); $('#wormBar .wbT').textContent = `“${worm.titleA}” joined to “${worm.titleB}”: drag cards across the dotted line.`; $('#wormBar').hidden = false;
+  view = {...view0}; applyView(); $('#wormBar .wbT').textContent = `“${worm.titleA}” joined to “${worm.titleB}”: drag cards across the dotted line.`; $('#wormBar').hidden = false;
   renderAll();
-}
-function wormFit() {   // both boxes in view
-  const w = worm, X0 = -w.gA.ext.l - 20, X1 = w.dx + w.gB.W + w.gB.ext.r + 20, Y0 = -70, Y1 = Math.max(w.gA.H + w.gA.ext.b, w.gB.H + w.gB.ext.b) + 20;
-  const f = freeRect(), k = Math.min(f.w / (X1 - X0), f.h / (Y1 - Y0)) * 0.94;
-  view = {s: k, tx: f.x + (f.w - (X1 - X0) * k) / 2 - X0 * k, ty: f.y + (f.h - (Y1 - Y0) * k) / 2 - Y0 * k}; applyView();
 }
 function wormDraw() {   // the two boxes' outlines, their names, and the dotted line where they're joined
   const svgW = $('#wormFrame'); if (!svgW) return;
   if (!worm) { if (svgW.innerHTML) svgW.innerHTML = ''; return; }
   const w = worm, ra = {x: -w.gA.ext.l, w: w.gA.W + w.gA.ext.l + w.gA.ext.r, h: w.gA.H + w.gA.ext.b}, rb = {x: w.dx - w.gB.ext.l, w: w.gB.W + w.gB.ext.l + w.gB.ext.r, h: w.gB.H + w.gB.ext.b};
   const box = (q, t) => `<rect class="wfBox" x="${q.x}" y="0" width="${q.w}" height="${q.h}" rx="16"/><text class="wfT" x="${q.x + 20}" y="-22">${esc(t)}</text>`;
-  svgW.innerHTML = box(ra, w.titleA) + box(rb, w.titleB) + `<line class="wfJoin" x1="${w.jx}" y1="-6" x2="${w.jx}" y2="${Math.max(ra.h, rb.h) + 6}"/>`;
+  const grip = (k, x1, y1, x2, y2, cur) => { const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, v = x1 === x2;
+    return `<line class="wfGrip" x1="${v ? mx : mx - 40}" y1="${v ? my - 40 : my}" x2="${v ? mx : mx + 40}" y2="${v ? my + 40 : my}"/>`
+      + `<line class="wfHit" data-wg="${k}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" style="cursor:${cur}"><title>Drag to make this box bigger or smaller</title></line>`; };
+  svgW.innerHTML = box(ra, w.titleA) + box(rb, w.titleB) + `<line class="wfJoin" x1="${w.jx}" y1="-6" x2="${w.jx}" y2="${Math.max(ra.h, rb.h) + 6}"/>`
+    + grip('Al', ra.x, 20, ra.x, ra.h - 20, 'ew-resize') + grip('Ab', ra.x + 20, ra.h, w.jx - 20, ra.h, 'ns-resize')
+    + grip('Br', rb.x + rb.w, 20, rb.x + rb.w, rb.h - 20, 'ew-resize') + grip('Bb', w.jx + 20, rb.h, rb.x + rb.w - 20, rb.h, 'ns-resize');
 }
-const wormSnap = () => JSON.stringify({nodes: state.nodes, links: state.links, sketches: state.sketches, sleeves: state.sleeves.filter(v => v.lv === worm.lv)});
+// A free edge dragged: that box bigger or smaller that way (never smaller than its cards on this side of the line need).
+function wormGripDown(e, which) {
+  e.stopPropagation(); e.preventDefault();
+  const w = worm, sd = which[0], d = which[1], g = sd === 'A' ? w.gA : w.gB, x0 = {...g.ext}, p0 = toWorld(e), ox = sd === 'B' ? w.dx : 0;
+  let lo = Infinity, hi = -Infinity, low = -Infinity;
+  for (const n of state.nodes) { const b = cardBox(n.id); if (!b || (b.cx < w.jx ? 'A' : 'B') !== sd) continue; lo = Math.min(lo, b.x - ox); hi = Math.max(hi, b.x + b.w - ox); low = Math.max(low, b.y + b.h); }
+  const a0 = wormArea({...g, ext: {l: 0, r: 0, b: 0}}), need = {l: Math.max(0, a0.x0 - lo), r: Math.max(0, hi - a0.x1), b: Math.max(0, low - a0.y1)};
+  let moved = false;
+  const move = ev => {
+    const p = toWorld(ev), snap = 12 / view.s;
+    let v = d === 'l' ? x0.l - (p.x - p0.x) : d === 'r' ? x0.r + (p.x - p0.x) : x0.b + (p.y - p0.y);
+    v = Math.round(Math.max(need[d], v < snap ? 0 : Math.min(v, 4 * g.W))); if (v === g.ext[d]) return;
+    if (!moved) { moved = true; pushUndo(); }
+    g.ext[d] = v; wormDraw();
+  };
+  const up = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', up); removeEventListener('pointercancel', up); if (moved) { markDirty(); renderMap(); } };
+  addEventListener('pointermove', move); addEventListener('pointerup', up); addEventListener('pointercancel', up);
+}
+// While joined, the top-left box still shows the first box (as inside it), only to read: the way in and the join.
+function wormScene() {
+  const box = $('#scene'), A = worm.P.nodes.find(n => n.id === worm.aId);
+  $('#index').hidden = !!A; box.hidden = !A; if (!A) return;
+  const keep = {nodes: state.nodes, links: state.links, sketches: state.sketches, sel: selected, mode: panelMode};
+  state.nodes = worm.P.nodes; state.links = worm.P.links; state.sketches = worm.P.sketches; selected = {type: 'node', id: A.id}; panelMode = 'read'; sceneCtx = true;
+  try { renderCard(box, A, false); } finally {
+    sceneCtx = false; state.nodes = keep.nodes; state.links = keep.links; state.sketches = keep.sketches; selected = keep.sel; panelMode = keep.mode; ctxPending = 0;
+  }
+  box.querySelectorAll('.p-head button, [data-act], [data-hide]').forEach(x => x.remove());
+  const path = ['Page', ...inside.map(x => { const k = x.nodes.find(n => n.id === x.id); return k && k.title || 'Untitled'; }), worm.titleA];
+  box.querySelector('.p-body').insertAdjacentHTML('afterbegin', `<div class="sc-path">${path.map((p, i) => i === path.length - 1 ? `<b>${esc(p)}</b>` : esc(p)).join(' › ')} · joined to <b>${esc(worm.titleB)}</b></div>`);
+  box.dataset.key = 'worm:' + A.id;
+}
+const wormSnap = () => JSON.stringify({nodes: state.nodes, links: state.links, sketches: state.sketches, sleeves: state.sleeves.filter(v => v.lv === worm.lv), ext: {A: worm.gA.ext, B: worm.gB.ext}});
 function wormLoad(json) {
   const o = JSON.parse(json);
   state.nodes = o.nodes; state.links = o.links; state.sketches = o.sketches; state.sleeves = state.sleeves.filter(v => v.lv !== worm.lv).concat(o.sleeves);
+  if (o.ext) { worm.gA.ext = o.ext.A; worm.gB.ext = o.ext.B; }
   if (selected && !(selected.type === 'node' ? getNode(selected.id) : getLink(selected.id))) selected = null;
   clearMulti(); labelPos.clear(); markDirty(); renderAll();
 }
@@ -4608,6 +4643,7 @@ function wormEnd(keep) {   // the join closes (keep: Done; otherwise Cancel)
   toast(said + '.' + (r.dropped ? ` ${r.dropped} connection${r.dropped === 1 ? '' : 's'} between the two boxes had to go.` : ''), true);
 }
 document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('#wormBar [data-worm]'); if (b) wormEnd(b.dataset.worm === 'done'); });
+$('#wormFrame').addEventListener('pointerdown', e => { const g = e.target.closest('[data-wg]'); if (g && worm && e.button === 0) wormGripDown(e, g.dataset.wg); });
 // Picked cards moved together: a sleeve all of whose cards moved goes with them; one only some of whose cards moved
 // takes them back into their places.
 function slvAfterSet(set) {
@@ -6166,6 +6202,7 @@ function inScene(fn) {
 }
 const sceneWait = from => { if (!sceneCtx) return false; ctxPending = Math.max(ctxPending, from === 'panel' ? 1 : 2); return true; };
 function renderScene(force) {
+  if (worm) { wormScene(); return; }
   const box = $('#scene'), e = holder(), c = e && holderCard();
   $('#index').hidden = !!c; box.hidden = !c;
   if (!c) { sceneMode = 'read'; box.dataset.key = ''; return; }
@@ -6184,6 +6221,7 @@ function renderScene(force) {
 // run as if one level out. A few things are handled here instead: Edit/Done, Back out, going to a connected card
 // (that's outside: you go out first), and what can't be done from inside (deleting the box, or emptying it).
 function sceneEvent(type, e) {
+  if (worm) return;   // (two boxes joined: the first box's details are only shown, until Done)
   const t = e.target, b = t.closest && t.closest('button');
   const focusIn = key => { const el = key ? $('#scene').querySelector(key.startsWith('f:') ? `[data-field="${CSS.escape(key.slice(2))}"]` : `[data-k="${key}"]`) : $('#scene [data-k="title"]');
     if (el) { el.focus(); const L = el.value.length; el.setSelectionRange(L, L); } };
