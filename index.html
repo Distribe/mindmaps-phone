@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-XKbXIEbDSuvMDajNXxwS9P/2Mse54N1ybyfcsWzVT70=' 'sha256-IIDIIi5i6GFyuqKQl12oI/mrZQhpTteplhtlbJIDJ4A='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-zSL8ApUKZ9K83Zc8eqUwgo5GNxEJm8c+rVrUOAqi9kE=' 'sha256-sdlAKS8Exf04ACWhXknb4Dg+bV0pEzissATFVN0WGq4='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1128,7 +1128,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '39 (21 Nov 2026, 22:23)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '40 (21 Nov 2026, 22:49)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -11104,8 +11104,8 @@ canvas.addEventListener('pointermove', e => {
     const n = getNode(drag.id); if (!n) return;
     if (!drag.moved) { drag.moved = true; pushUndo(); if (multiSel.has(n.id) && multiCount() > 1) drag.set = startMoveSet(multiSel, multiSk); }
     const p = toWorld(e);
-    if (drag.set) { const o = drag.set.find(o => o.n === n), sp = snapAt(drag.el, p.x - drag.ox, p.y - drag.oy, e.shiftKey); moveSet(drag.set, sp.x - o.x, sp.y - o.y); boxDragOver(drag, p); return; }   // the card held snaps; the others keep their places around it   // a picked card: they all move
-    const sp = snapAt(drag.el, p.x - drag.ox, p.y - drag.oy, e.shiftKey);
+    if (drag.set) { const o = drag.set.find(o => o.n === n), sp = alignAt(drag, snapAt(drag.el, p.x - drag.ox, p.y - drag.oy, e.shiftKey), e); moveSet(drag.set, sp.x - o.x, sp.y - o.y); boxDragOver(drag, p); return; }   // the card held snaps; the others keep their places around it   // a picked card: they all move
+    const sp = alignAt(drag, snapAt(drag.el, p.x - drag.ox, p.y - drag.oy, e.shiftKey), e);
     boxLoose = true; put2(n, sp.x, sp.y);
     holdForDrag([n.id]); placeCard(drag.el, n);
     for (const id of ancTidy(true)) { const el = cardEls.get(id), m = getNode(id); if (el && m) placeCard(el, m); }   // (the cards anchored to it come too)
@@ -11144,6 +11144,30 @@ function snapAt(el, x, y, shift) {   // the card's top-left corner, moved so its
   if (!(snapOn || shift) || !el) return {x: Math.round(x), y: Math.round(y)};
   const w = el.offsetWidth / 2, h = el.offsetHeight / 2, to = v => Math.round((v - SNAP / 2) / SNAP) * SNAP + SNAP / 2;
   return {x: Math.round(to(x + w) - w), y: Math.round(to(y + h) - h)};
+}
+// Lining up: a card being moved (with Snap to grid off) gives a little pull, a few pixels on screen, towards lining up
+// with the cards near it: its left edge, middle or right edge with those of a card above or below it; its top, middle
+// or bottom with a card beside it. Hold Alt to place it freely.
+const ALIGN = 6, ALIGN_NEAR = 600;   // the pull, in screen pixels; how far away a card still counts as near
+function alignAt(drag, p, e) {
+  if (snapOn || e.shiftKey || e.altKey || !drag.el) return p;
+  const w = drag.el.offsetWidth, h = drag.el.offsetHeight, me = cardBox(drag.id);
+  if (!me || Math.abs(me.w - w) > 1) return p;   // (only on the flat map: not while Tiers or 3D change cards' sizes)
+  if (!drag.alignTo) {   // the other cards, measured once per drag (they stay put while it's held)
+    const skip = new Set([drag.id, ...(drag.set || []).map(o => o.n && o.n.id), ...(ancOn() ? ancDesc(drag.id) : [])]);
+    drag.alignTo = [];
+    for (const id of cardEls.keys()) { if (skip.has(id)) continue; const b = cardBox(id); if (b && b.w) drag.alignTo.push(b); }
+  }
+  const z = ALIGN / view.s, best = (cur, d) => Math.abs(d) < z && (cur == null || Math.abs(d) < Math.abs(cur)) ? d : cur;
+  let dx = null, dy = null;
+  for (const b of drag.alignTo) {
+    const gapX = Math.max(b.x - (p.x + w), p.x - (b.x + b.w)), gapY = Math.max(b.y - (p.y + h), p.y - (b.y + b.h));
+    if (gapY < ALIGN_NEAR && gapX < ALIGN_NEAR) {
+      if (gapX < z) { dx = best(dx, b.x - p.x); dx = best(dx, b.cx - (p.x + w / 2)); dx = best(dx, b.x + b.w - (p.x + w)); }   // above or below it
+      if (gapY < z) { dy = best(dy, b.y - p.y); dy = best(dy, b.cy - (p.y + h / 2)); dy = best(dy, b.y + b.h - (p.y + h)); }   // beside it
+    }
+  }
+  return {x: Math.round(p.x + (dx || 0)), y: Math.round(p.y + (dy || 0))};
 }
 // moving a set of cards together (a box selection or a whole group): remember where each started
 function startMoveSet(ids, sks = []) {   // cards, and any picked drawings (one anchored to a card that's moving already follows it)
