@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-BGpM9N8yXsLqSNSO7yGSs7my+OWCMGSfoZRZzlnzYn4=' 'sha256-mqFN8STOtsO+uGhDeXz9kRp4Kkq7fOeh5y6z/7W9Nps='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-o6LgWkT2xrBmGQs35kTK4Dyt7leBciVBKqozDOn8VU4=' 'sha256-l8DJyaMkEiPyY6TUcG8sUAC5cYXkdvM1j3NbiJd2j+E='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1119,7 +1119,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '37 (21 Nov 2026, 00:51)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '38 (21 Nov 2026, 22:07)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -6596,7 +6596,7 @@ function renderOther(box) {
           <div class="sec">Name</div><input type="text" data-tg="name" value="${esc(t.name)}" style="width:100%">
           <label class="chk" style="margin:12px 0 0"><input type="checkbox" data-gchk="1" ${t.group ? 'checked' : ''}>Show as a group (shaded area on the map)</label>
           <div class="sec">Notes</div><textarea class="ed n" data-tg="note" placeholder="Notes about this tag or group…">${esc(t.note || '')}</textarea>
-          <div class="sec">Colour</div><div class="tagpal">${TAG_COLORS.map(c => `<button data-tcolor="${c}" class="${c === t.color ? 'cur' : ''}" style="background:${c}" title="Tag colour"></button>`).join('')}<input type="color" data-tg="color" value="${t.color}" title="Any colour"></div>
+          <div class="sec">Colour</div><div class="tagpal">${TAG_COLORS.map(c => `<button data-tcolor="${c}" class="${c === t.color ? 'cur' : ''}" style="background:${c}" title="Tag colour"></button>`).join('')}<input type="color" data-tg="color" value="${t.color}" title="Any colour">${PICK_BTN}</div>
           <div class="p-foot"><span class="muted">${tagCount} use this tag</span><span class="grow"></span><button class="btn danger" data-o="tdel" title="Delete this tag (cards are kept; you can undo)">Delete tag</button></div></div>`
       : head(strip + `<div class="d-title">${esc(t.name)}</div>`, `<button class="btn solid" data-o="edit" title="Rename, recolour or delete this tag (E)">Edit</button>`) + `<div class="p-body">
           <div class="muted">${tagCount}</div>
@@ -10281,48 +10281,63 @@ function tagSwatches(cur) {
   const inKey = new Set(ckey().map(k => k.color.toLowerCase())), cs = [...new Set(state.tags.map(t => t.color.toLowerCase()))].filter(c => !inKey.has(c));
   return cs.length ? '<span class="psep"></span>' + cs.map(c => `<button data-color="${c}" class="${c === String(cur).toLowerCase() ? 'cur' : ''}" style="background:${shown(c)}" title="${esc(state.tags.filter(t => t.color.toLowerCase() === c).map(t => t.name).join(', '))} (tag colour)"></button>`).join('') : '';
 }
-// The pipette: the next click on the map takes the exact colour of what's clicked (a card, a tag, a group's name, a
-// coloured line, a colour in the key) for the card or line that's picked. Esc (or a click on nothing coloured) stops.
-const PICK_BTN = '<button class="btn icon pickc" data-pick title="Pick a colour from the map: click a card, a tag, a group&rsquo;s name or a line to take its exact colour"><svg viewBox="0 0 16 16"><path d="M10.5 2.5a1.8 1.8 0 0 1 2.6 2.6l-1.2 1.2.7.7-1 1-.7-.7-5 5H3.5v-2.4l5-5-.7-.7 1-1 .7.7z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg></button>';
+// The dropper, beside each "any colour" box. In the app: the pointer turns to a cross over the whole screen, and the next
+// click anywhere (this map, another program, a picture) takes the colour there; on a card, a tag, a group's name, a
+// line or a colour in the key, it takes that thing's exact colour rather than the pixel's. Esc or a right-click stops.
+// Elsewhere (the phone, a browser): the next tap on the map takes the exact colour of what's tapped.
+// The colour goes into the box beside it, just as if it had been picked there.
+const PICK_BTN = '<button type="button" class="btn icon pickc" data-pick title="Dropper: click it, then click any colour on the screen to take it (Esc stops)"><svg viewBox="0 0 16 16"><path d="M10.5 2.5a1.8 1.8 0 0 1 2.6 2.6l-1.2 1.2.7.7-1 1-.7-.7-5 5H3.5v-2.4l5-5-.7-.7 1-1 .7.7z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></svg></button>';
 let picking = null;
-function pickStart() {
-  const t = selected && (selected.type === 'node' ? getNode(selected.id) : getLink(selected.id)); if (!t) return;
-  picking = {type: selected.type, id: selected.id}; document.body.classList.add('picking');
-  toast('Click a card, a tag, a group’s name or a line to take its colour (Esc: stop).', true);
+const pickBox = b => { const p = b.previousElementSibling; return p && p.matches('input[type=color]') ? p : b.parentElement && b.parentElement.querySelector('input[type=color]'); };
+function pickPut(inp, c) {
+  if (!inp || !inp.isConnected || !c) return;
+  inp.value = safeColor(c, inp.value).toLowerCase();
+  inp.dispatchEvent(new Event('input', {bubbles: true})); inp.dispatchEvent(new Event('change', {bubbles: true}));
+  toast('Colour taken.');
 }
-function pickStop() { picking = null; document.body.classList.remove('picking'); }
+async function pickStart(btn) {
+  const inp = pickBox(btn); if (!inp || picking) return;
+  if (inApp() && window.pywebview.api.pick_colour) {
+    picking = {inp, screen: true}; toast('Click any colour on the screen to take it (Esc or a right-click: stop).', true);
+    let r = null; try { r = await app('pick_colour'); } catch (e) {}
+    picking = null; hideToast();
+    if (!r || !r.color) return;
+    let c = r.color;
+    if (r.over) { const el = document.elementFromPoint(r.x / devicePixelRatio, r.y / devicePixelRatio), e = el && colourAt(el); if (e) c = e; }
+    pickPut(inp, c); return;
+  }
+  picking = {inp}; document.body.classList.add('picking');
+  toast('Tap a card, a tag, a group’s name or a line to take its colour (Esc: stop).', true);
+}
+function pickStop() { if (picking && picking.screen) return; picking = null; document.body.classList.remove('picking'); }
 function colourAt(el) {
   const card = el.closest('.card[data-id]'); if (card && !card.closest('#detail')) { const n = getNode(card.dataset.id); return n && n.color; }
   const tg = el.closest('[data-tag], .glabel[data-group], [data-group]'); if (tg) return tagColor(tg.dataset.tag || tg.dataset.group);
   const ln = el.closest('g[data-link]'); if (ln) { const l = getLink(ln.dataset.link); return l && (l.color || ''); }
   const ki = el.closest('#ckBox [data-ki]'); if (ki) { const k = ckey()[+ki.dataset.ki]; return k && k.color; }
-  const sw = el.closest('[data-color], [data-lcolor]'); if (sw) return sw.dataset.color || sw.dataset.lcolor;
+  const sw = el.closest('[data-color], [data-lcolor], [data-tcolor]'); if (sw) return sw.dataset.color || sw.dataset.lcolor || sw.dataset.tcolor;
   return null;
 }
-document.addEventListener('pointerdown', e => {
-  if (!picking) return;
+document.addEventListener('pointerdown', e => {   // (not in the app: the tap that takes the colour)
+  if (!picking || picking.screen) return;
   if (e.target.closest('[data-pick]')) return;
   e.preventDefault(); e.stopImmediatePropagation();
   const c = colourAt(e.target), p = picking; pickStop(); hideToast();
-  if (c == null) return;
-  const t = p.type === 'node' ? getNode(p.id) : getLink(p.id); if (!t) return;
-  pushUndo();
-  if (p.type === 'node') t.color = safeColor(c, t.color).toLowerCase(); else if (c) t.color = safeColor(c).toLowerCase(); else delete t.color;
-  changed(); toast('Colour taken.');
+  pickPut(p.inp, c);
 }, true);
-document.addEventListener('click', e => { if (picking && !e.target.closest('[data-pick]')) { e.preventDefault(); e.stopImmediatePropagation(); } }, true);
-document.addEventListener('keydown', e => { if (picking && e.key === 'Escape') { e.stopImmediatePropagation(); pickStop(); hideToast(); } }, true);
-document.addEventListener('click', e => { if (e.target.closest('#detail [data-pick]')) { if (picking) { pickStop(); hideToast(); } else pickStart(); } });
+document.addEventListener('click', e => { if (picking && !picking.screen && !e.target.closest('[data-pick]')) { e.preventDefault(); e.stopImmediatePropagation(); } }, true);
+document.addEventListener('keydown', e => { if (picking && !picking.screen && e.key === 'Escape') { e.stopImmediatePropagation(); pickStop(); hideToast(); } }, true);
+document.addEventListener('click', e => { const b = e.target.closest('[data-pick]'); if (!b) return; e.preventDefault(); e.stopPropagation(); if (picking && !picking.screen) { pickStop(); hideToast(); } else pickStart(b); }, true);
 function keyEditor() {
   const counts = new Map(), walk = ns => { for (const n of ns) { const c = n.color.toLowerCase(); counts.set(c, (counts.get(c) || 0) + 1); if (n.inner) walk(n.inner.nodes); } };
   walk(fullState().nodes);
   return `<div class="ckey">${ckey().map((k, i) => ({k, i})).reverse().map(({k, i}) => `<div class="ckrow${i === DEF ? ' fixed' : ''}" data-ck="${i}"${i !== DEF ? ' draggable="true"' : ''}>
       <span class="ckgrip" title="${i === DEF ? 'Base: new cards start in this colour, so it stays here' : i === SUB ? 'The faded tier (the lowest): drag it up to make it an ordinary tier, or drag another colour here to make that one faded' : 'Drag to move this tier up or down (to the bottom: the faded tier)'}">${i === DEF ? '–' : '⋮⋮'}</span>
-      <input type="color" value="${k.color}" data-ckc title="Change this colour (its cards follow)">
+      <input type="color" value="${k.color}" data-ckc title="Change this colour (its cards follow)">${PICK_BTN}
       <input type="text" class="catname" value="${esc(k.label)}" data-ckl placeholder="Label">
       <span class="muted" title="Cards in this colour">${counts.get(k.color.toLowerCase()) || 0}</span>
       <label class="chk" title="Show this colour in the key on the map (untick: it's just for its cards)" style="margin:0 2px"><input type="checkbox" data-ckshow ${k.hide ? '' : 'checked'}></label>
-      <label class="chk" title="An outline round its cards, to make them stand out" style="margin:0 2px;white-space:nowrap"><input type="checkbox" data-ckout ${k.outline ? 'checked' : ''}>Outline</label>${k.outline ? `<input type="color" value="${k.outline}" data-ckoc title="The outline's colour">` : ''}
+      <label class="chk" title="An outline round its cards, to make them stand out" style="margin:0 2px;white-space:nowrap"><input type="checkbox" data-ckout ${k.outline ? 'checked' : ''}>Outline</label>${k.outline ? `<input type="color" value="${k.outline}" data-ckoc title="The outline's colour">${PICK_BTN}` : ''}
       ${i >= 2 ? `<button class="btn icon" data-ckdel title="Take this colour out (its cards go to Base)">${ICON_X}</button>` : '<span class="ckgap"></span>'}</div>`).join('')}
     <div style="margin-top:8px"><button class="btn" data-ckadd>+ Add a colour</button></div></div>`;
 }
@@ -10421,7 +10436,7 @@ function catCount(test, word) {
 function renderCats() {
   $('#catKey').innerHTML = keyEditor() + `<label class="chk" style="margin-top:10px;display:flex"><input type="checkbox" data-keybox ${state.settings.keyBox ? 'checked' : ''}>Show the colour key on the map</label>`;
   $('#catTags').innerHTML = state.tags.map((t, i) => `<div class="catrow" data-i="${i}">
-      <input type="color" value="${t.color}" data-act="tcolor" title="Tag colour">
+      <input type="color" value="${t.color}" data-act="tcolor" title="Tag colour">${PICK_BTN}
       <input type="text" class="catname" value="${esc(t.name)}" data-act="tname">
       <span class="muted">${catCount(n => n.tags.includes(t.name), 'cards')}</span>
       <button data-act="tdel" class="btn danger" title="Delete this tag (cards are kept)">Delete</button></div>`).join('') || '<p>No tags yet.</p>';
@@ -10445,7 +10460,7 @@ function markEditor(f, i) {
         ${k < 0 ? '' : `<button class="btn icon" data-mke="del" title="Remove this state"><svg viewBox="0 0 16 16"><path d="m4 4 8 8M12 4l-8 8"/></svg></button>`}</div>`
       + (open ? `<div class="mkchoose" data-o="${k}">
         <div class="mkicons">${Object.keys(MARK_ICONS).filter(ic => ic !== 'none' || k < 0).map(ic => `<button data-mke="icon" data-v="${ic}" class="${ic === look.icon ? 'cur' : ''}" title="${MARK_ICONS[ic][0]}">${markBadge({icon: ic, color: look.color})}</button>`).join('')}</div>
-        <div class="mkcols">${MARK_COLORS.map(([c, nm]) => `<button data-mke="col" data-v="${c}" class="${c === look.color ? 'cur' : ''}" style="background:${c}" title="${nm}"></button>`).join('')}<input type="color" data-mke="colany" value="${look.color}" title="Any colour"></div></div>` : ''); };
+        <div class="mkcols">${MARK_COLORS.map(([c, nm]) => `<button data-mke="col" data-v="${c}" class="${c === look.color ? 'cur' : ''}" style="background:${c}" title="${nm}"></button>`).join('')}<input type="color" data-mke="colany" value="${look.color}" title="Any colour">${PICK_BTN}</div></div>` : ''); };
   return `<div class="mkset" data-fi="${i}">
     <p class="mkhelp">A click on a card's mark moves it to the next state below, and after the last back to Not set (Shift-click: back one). Click a symbol here to change it.</p>
     ${row(m.blank, -1)}${m.opts.map((o, k) => row(o, k)).join('')}
