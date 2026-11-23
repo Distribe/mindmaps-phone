@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-AE+Q6/OVMyySDdG8mF77roFtSRDgoBQnmwBBjxMEAsY=' 'sha256-myBCgqfto4U74lDljBfGe8BuebcKMEzHeq0ocXADFOU='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/O8PLYr1V0UTYye1luOrMIYLI2/0WU/FP76qJ2t8Dm8=' 'sha256-xu4atxVVsUbRmoUfqXN493uGP0PEih7xiStz2o1kCwE='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1128,7 +1128,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '42 (21 Nov 2026, 23:14)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '43 (23 Nov 2026, 23:53)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -9822,8 +9822,10 @@ const merge3 = (() => {
     if (a === b) return true;
     if (typeof a !== 'object' || typeof b !== 'object' || !a || !b || Array.isArray(a) !== Array.isArray(b)) return false;
     if (Array.isArray(a)) return a.length === b.length && a.every((x, i) => same(x, b[i]));
-    const ka = Object.keys(a), kb = Object.keys(b);
-    return ka.length === kb.length && ka.every(k => Object.prototype.hasOwnProperty.call(b, k) && same(a[k], b[k]));
+    // (a key holding undefined counts as missing, as in the saved file: the map on screen has some, d3 and s2 on
+    // every card, and counting them made every card look changed here, so nothing deleted on the other side went)
+    const ka = Object.keys(a).filter(k => a[k] !== undefined), kb = Object.keys(b).filter(k => b[k] !== undefined);
+    return ka.length === kb.length && ka.every(k => b[k] !== undefined && same(a[k], b[k]));
   };
   const plainObj = x => x && typeof x === 'object' && !Array.isArray(x);
   const keyOf = xs => { if (!xs.length || !xs.every(plainObj)) return null; for (const k of ['id', 'name']) if (xs.every(x => typeof x[k] === 'string')) return k; return null; };
