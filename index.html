@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-/O8PLYr1V0UTYye1luOrMIYLI2/0WU/FP76qJ2t8Dm8=' 'sha256-xu4atxVVsUbRmoUfqXN493uGP0PEih7xiStz2o1kCwE='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-woTcIREqHMCgpueWES6Hs6iu3cB8d4yPz2UsyF+Bs5I=' 'sha256-yox6Czg1cZdyZn99KOeQCMgbi3wGbortL4vZaeCzOgQ='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1128,7 +1128,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '43 (23 Nov 2026, 23:53)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '44 (24 Nov 2026, 17:27)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -2000,6 +2000,9 @@ function shown(c) {
 }
 const subText = '#8a8f98';   // its fainter text
 const isSub = c => !!c && keyAt(c) === SUB;
+// A line's weight: subtle if set so; and a line to or from a greyed-out (faded) card starts subtle too, unless it has
+// been set to core by hand (l.core). So fading a card fades its lines, and any of them can still be made core.
+const lnSubtle = l => !!l.subtle || (!l.core && [l.from, l.to].some(id => { const n = getNode(id); return !!n && isSub(n.color); }));
 const keyOut = c => { const i = keyAt(c); return i >= 0 && ckey()[i].outline || ''; };   // a colour whose cards have an outline (to stand out), and its colour
 // The slider (Appearance, "Greyed-out cards: faded") sets how grey these cards are: at 0% they look exactly like white
 // cards; at the default 55% they have the full grey background, faint text and a faded tag colour; in between, in
@@ -2487,7 +2490,7 @@ function normalize(o) {
       if (fp && pts.length > 1 && pts.every(q => q.length >= 2 && q.every(isFinite))) longMemo.set(String(l.id), {fp, pts: pts.map(q => q.length > 3 ? {x: q[0], y: q[1], pair: {tin: q[2], tout: q[3]}} : q.length > 2 ? {x: q[0], y: q[1], r: q[2]} : {x: q[0], y: q[1]})});
     }
     return ({id: String(l.id || uid()), from: String(l.from), to: String(l.to), label: String(l.label ?? ''), note: String(l.note ?? ''), dir: ['to', 'both', 'close', 'none'].includes(l.dir) ? l.dir : 'both', ...(l.flat ? {flat: true} : {}),
-    ...(l.curve || l.long ? {curve: true} : {}), ...(l.subtle || l.long ? {subtle: true} : {}), ...(l.wide ? {wide: true} : {}), ...(l.still ? {still: true} : {}), ...(+l.ls > 0 && +l.ls !== 1 ? {ls: +(+l.ls).toFixed(2)} : {}), ...(/^#[0-9a-f]{6}$/i.test(l.color || '') ? {color: l.color.toLowerCase()} : {}),   // shape: curved (round the cards) or straight; weight: subtle (faded, not part of the structure) or core. An old "long" link was both curved and subtle.
+    ...(l.curve || l.long ? {curve: true} : {}), ...(l.subtle || l.long ? {subtle: true} : l.core ? {core: true} : {}), ...(l.wide ? {wide: true} : {}), ...(l.still ? {still: true} : {}), ...(+l.ls > 0 && +l.ls !== 1 ? {ls: +(+l.ls).toFixed(2)} : {}), ...(/^#[0-9a-f]{6}$/i.test(l.color || '') ? {color: l.color.toLowerCase()} : {}),   // shape: curved (round the cards) or straight; weight: subtle (faded, not part of the structure) or core. An old "long" link was both curved and subtle.
     ...((l.curve || l.long) && l.via && isFinite(+l.via.x) && isFinite(+l.via.y) ? {via: {x: Math.round(+l.via.x), y: Math.round(+l.via.y)}} : {})}); }   // via: a curved line's waypoint   // labels run along their line unless marked flat   // old undirected lines become two-way
   const st = o.settings || {};
   if (st.view && isFinite(st.view.s)) s.settings.view = {tx: +st.view.tx || 0, ty: +st.view.ty || 0, s: clamp(+st.view.s, 0.1, 3)};
@@ -3813,8 +3816,8 @@ addEventListener('resize', renderTierBar);
 let zTiers = [];
 const cardZ = n => isSel('node', n.id) ? 400 : multiSel.has(n.id) ? 300 : 1 + zTiers.indexOf(tierRank(n.color));
 // A card in a line: n.on is the line's id and n.onT how far along it sits (0 to 1). On the 2D map the card is drawn
-// small, in the line at that spot, turned to run along it (level, if the line's label is set level), and the line
-// swells round it, like something swallowed. Drag a card onto a wide line and hold Shift as you drop it to put it
+// small and level, in the line at that spot, and the line swells round it into a rounded box, like something
+// swallowed. Drag a card onto a wide line and hold Shift as you drop it to put it
 // in; drag it along the line to move it; hold Shift and drag it away to take it out (see riderDrop). The card's x and y are kept up to date, so everything else (the list, the
 // other views, lines to it) just sees a card there.
 const riderOf = new Map(), riderMemo = new Map();   // card id -> the id of its line; card id -> its place, as last worked out
@@ -3835,33 +3838,35 @@ function riderTidy() {
     ridersBy.get(l.id).push(n);
   }
 }
-// On the path d (lw px wide), a card w by h at t along it: its corner, its turn, and the swell round it. The swell
-// is the path's own outline, widened to the card (4px clear all round) and easing back to the line beyond each end.
-function riderPlace(d, w, h, t, flat, lw, ext) {   // (ext: more room below the card, for a box's handle)
+// On the path d (lw px wide), a level card w by h at t along it: its corner, and the swell round it. The swell is a
+// rounded box 5px clear of the card, and where the line goes in and out of it, the line flares a little to meet it
+// (a short, smooth curve), so the card sits in the line rather than on top of it.
+function riderPlace(d, w, h, t, flat, lw, ext) {   // (ext: more room below the card, for a box's handle; flat: no longer used, cards are always level)
   const {path} = curveMeasure(); path.setAttribute('d', d);
   const L = path.getTotalLength(); if (!(L > 0)) return null;
   const at = s => path.getPointAtLength(clamp(s, 0, L));
+  const PAD = 5, RAD = 9, FL = 22, FW = 9;   // clear of the card; the box's corners; the flare's length and how much wider it gets
   const turn = s => { const a = at(s - 2), b = at(s + 2); return Math.atan2(b.y - a.y, b.x - a.x); };
-  let s = clamp(t, 0, 1) * L, ang = turn(s), hl, hp, T;
-  const size = () => { const cs = flat ? Math.abs(Math.cos(ang)) : 1, sn = flat ? Math.abs(Math.sin(ang)) : 0;   // (a level card on a sloping line takes up more of it)
-    hl = (w * cs + h * sn) / 2 + 4; hp = (w * sn + h * cs) / 2 + 4; T = clamp((hp - lw / 2) * 2.2, 24, 90); };
-  size();
-  const room = hl + T + 4;
+  const half = ang => (w * Math.abs(Math.cos(ang)) + h * Math.abs(Math.sin(ang))) / 2 + PAD;   // the box's reach along the line
+  let s = clamp(t, 0, 1) * L;
+  const room = half(turn(s)) + FL + 4;
   s = L < room * 2 ? L / 2 : clamp(s, room, L - room);   // (clear of the line's ends)
-  ang = turn(s); size();
-  const M = at(s), s0 = Math.max(0, s - hl - T), s1 = Math.min(L, s + hl + T), k = Math.max(2, Math.ceil((s1 - s0) / 3));
-  const pts = []; for (let i = 0; i <= k; i++) pts.push(at(s0 + (s1 - s0) * i / k));
-  let deg = flat ? 0 : ang * 180 / Math.PI; if (deg > 90) deg -= 180; if (deg <= -90) deg += 180;   // (the right way up, like a label)
-  const Dx = -Math.sin(deg * Math.PI / 180), Dy = Math.cos(deg * Math.PI / 180);   // which way is down, for the card
-  const up = [], dn = [];
-  for (let i = 0; i <= k; i++) {
-    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(k, i + 1)], len = Math.hypot(b.x - a.x, b.y - a.y) || 1, nx = -(b.y - a.y) / len, ny = (b.x - a.x) / len;
-    const u = clamp(1 - (Math.abs(s0 + (s1 - s0) * i / k - s) - hl) / T, 0, 1), e = u * u * (3 - 2 * u), half = lw / 2 + (hp - lw / 2) * e;
-    const low = (nx * Dx + ny * Dy) * ext * e, h1 = half + Math.max(0, low), h2 = half + Math.max(0, -low);   // (more on the card's lower side)
-    up.push((pts[i].x + nx * h1).toFixed(1) + ' ' + (pts[i].y + ny * h1).toFixed(1));
-    dn.push((pts[i].x - nx * h2).toFixed(1) + ' ' + (pts[i].y - ny * h2).toFixed(1));
+  const M = at(s), x0 = M.x - w / 2 - PAD, x1 = M.x + w / 2 + PAD, y0 = M.y - h / 2 - PAD, y1 = M.y + h / 2 + PAD + ext;
+  const inBox = q => q.x > x0 && q.x < x1 && q.y > y0 && q.y < y1;
+  const f = v => v.toFixed(1);
+  const r = Math.min(RAD, (x1 - x0) / 2, (y1 - y0) / 2);
+  let out = `M${f(x0 + r)} ${f(y0)}H${f(x1 - r)}Q${f(x1)} ${f(y0)} ${f(x1)} ${f(y0 + r)}V${f(y1 - r)}Q${f(x1)} ${f(y1)} ${f(x1 - r)} ${f(y1)}H${f(x0 + r)}Q${f(x0)} ${f(y1)} ${f(x0)} ${f(y1 - r)}V${f(y0 + r)}Q${f(x0)} ${f(y0)} ${f(x0 + r)} ${f(y0)}Z`;
+  for (const dir of [-1, 1]) {   // the flare where the line meets the box, on each side
+    let e = s; while (e > 0 && e < L && inBox(at(e))) e += dir;   // where the line leaves the box
+    const s0 = e + dir * FL, s1 = e - dir * 6, k = 12, up = [], dn = [];   // (from FL px out, narrow, to just inside the box, wide)
+    for (let i = 0; i <= k; i++) {
+      const si = s0 + (s1 - s0) * i / k, q = at(si), a = at(si - 1.5), bq = at(si + 1.5), len = Math.hypot(bq.x - a.x, bq.y - a.y) || 1, nx = -(bq.y - a.y) / len, ny = (bq.x - a.x) / len;
+      const u = clamp(i / k * (FL + 6) / FL, 0, 1), hw = lw / 2 + FW * u * u;   // (widening as it nears the box)
+      up.push(f(q.x + nx * hw) + ' ' + f(q.y + ny * hw)); dn.push(f(q.x - nx * hw) + ' ' + f(q.y - ny * hw));
+    }
+    out += 'M' + up.join('L') + 'L' + dn.reverse().join('L') + 'Z';
   }
-  return {x: Math.round((M.x - w / 2) * 10) / 10, y: Math.round((M.y - h / 2) * 10) / 10, deg: Math.round(deg * 10) / 10, bulge: 'M' + up.join('L') + 'L' + dn.reverse().join('L') + 'Z'};
+  return {x: Math.round((M.x - w / 2) * 10) / 10, y: Math.round((M.y - h / 2) * 10) / 10, deg: 0, bulge: out};
 }
 // A line's cards, each put in its place on the line as drawn (path d); gives the swells to draw with the line.
 function riderDraw(l, d) {
@@ -4084,7 +4089,7 @@ function connArrow(l, n) {
 }
 // Subtle lines are side links, not part of the core structure: Spatialise, clustering, loops, the Tiers layout and
 // the Focus sphere's rings all ignore them.
-const coreLinks = () => state.links.filter(l => !l.subtle);   // subtle links aren't part of the structure
+const coreLinks = () => state.links.filter(l => !lnSubtle(l));   // subtle links aren't part of the structure
 const labelPos = new Map();   // where each label is drawn now (labels glide to new spots)
 let labelsMoving = false, labelFrame = 0;
 // Groups: a tag marked "group" is drawn as a shaded patch around all the cards that carry it, so the patch
@@ -5729,7 +5734,7 @@ function renderLinks() {
     if (l.curve && !view3()) {   // a curved line: it finds its way round the cards, no tunnels
       const P = spread.get(l.id) || longPath(l, boxes) || [g.p1, g.p2], d = curveD(P), m = arrMark(l, sel, touches), E = P[P.length - 1];
       const end = l.dir === 'to' || l.dir === 'both', start = l.dir === 'both', rail = l.wide ? 4 : 1.5, dotR = l.wide ? 6 : 2.4;
-      h += `<g class="curve${l.subtle ? ' subtle' : ''}${l.dir === 'close' ? ' close' : ''}${l.wide ? ' wide' : ''}${l.color ? ' colored' : ''} ${cls}" data-link="${esc(l.id)}"${l.color ? ` style="--lc:${shown(l.color)};--lcd:${darker(shown(l.color))}"` : ''}>`;
+      h += `<g class="curve${lnSubtle(l) ? ' subtle' : ''}${l.dir === 'close' ? ' close' : ''}${l.wide ? ' wide' : ''}${l.color ? ' colored' : ''} ${cls}" data-link="${esc(l.id)}"${l.color ? ` style="--lc:${shown(l.color)};--lcd:${darker(shown(l.color))}"` : ''}>`;
       if (l.dir === 'close') {   // a close link: two rails 3px apart, each ending in a square bridge, as on a straight one
         h += [rail, -rail].map(k => `<path class="vis" d="${curveD(sideways(P, k))}"/>`).join('');
         const bridge = (A, B) => { const len = Math.hypot(B.x - A.x, B.y - A.y) || 1, u = {x: (B.x - A.x) / len, y: (B.y - A.y) / len}, L = Math.min(20, len / 2), hw = l.wide ? 6 : 2.3;
@@ -5820,7 +5825,7 @@ function renderLinks() {
     }
     if (l.color) depthStyle = `--lc:${shown(l.color)};--lcd:${darker(shown(l.color))};` + depthStyle;
     if (depthStyle) depthStyle = ` style="${depthStyle}"`;
-    h += `<g class="${cls}${l.subtle ? ' subtle' : ''}${l.dir === 'close' ? ' close' : ''}${l.wide ? ' wide' : ''}${l.color ? ' colored' : ''}${deep ? ' deep' : ''}" data-link="${esc(l.id)}"${depthStyle}>`;
+    h += `<g class="${cls}${lnSubtle(l) ? ' subtle' : ''}${l.dir === 'close' ? ' close' : ''}${l.wide ? ' wide' : ''}${l.color ? ' colored' : ''}${deep ? ' deep' : ''}" data-link="${esc(l.id)}"${depthStyle}>`;
     const sd = `M${p1.x} ${p1.y}L${p2.x} ${p2.y}`; if (l.wide || ridersBy.has(l.id)) linkShape.set(l.id, sd);
     h += `${body}${riderDraw(l, sd)}<line class="hit" x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}"/>`;   // (the cards in it, and the line swelling round them)
     if (l.note) h += `<title>${esc((l.label ? l.label + ': ' : '') + l.note)}</title>`;
@@ -6580,7 +6585,7 @@ function renderOther(box) {
         <div class="sec">Shape</div>
         ${choice('data-shape', [['straight', 'Straight', 'A straight line between the cards'], ['curved', 'Curved', 'A curve that finds its way round the cards (drag its dot to steer it)']], l.curve ? 'curved' : 'straight')}
         <div class="sec">Weight</div>
-        ${choice('data-weight', [['core', 'Core', 'Part of the map\'s structure'], ['subtle', 'Subtle', 'Lighter, and not part of the structure: Spatialise, clustering, loops and the 3D rings ignore it']], l.subtle ? 'subtle' : 'core')}
+        ${choice('data-weight', [['core', 'Core', 'Part of the map\'s structure'], ['subtle', 'Subtle', 'Lighter, and not part of the structure: Spatialise, clustering, loops and the 3D rings ignore it']], lnSubtle(l) ? 'subtle' : 'core')}
         <div class="sec">Width</div>
         ${choice('data-width', [['normal', 'Normal', 'A thin line'], ['wide', 'Wide', 'A wide line (10px)']], l.wide ? 'wide' : 'normal')}
         ${l.wide ? `<div style="margin-top:8px"><button class="btn solid" data-o="rider" title="A new small card in this line. Or drag any card onto the line and hold Shift as you drop it; hold Shift and drag it away to take it out">＋ Card in the line</button></div>` : ''}
@@ -6663,7 +6668,7 @@ detail.addEventListener('click', e => {
   else if (b.dataset.lsize && l) { pushUndo(); const v = +b.dataset.lsize; if (v === 1) delete l.ls; else l.ls = v; changed(); }
   else if (b.dataset.lstill && l) { pushUndo(); if (b.dataset.lstill === 'still') l.still = true; else delete l.still; changed(); }
   else if (b.dataset.width && l) { pushUndo(); if (b.dataset.width === 'wide') l.wide = true; else delete l.wide; changed(); }
-  else if (b.dataset.weight && l) { pushUndo(); if (b.dataset.weight === 'subtle') l.subtle = true; else delete l.subtle; changed(); }
+  else if (b.dataset.weight && l) { pushUndo(); if (b.dataset.weight === 'subtle') { l.subtle = true; delete l.core; } else { delete l.subtle; delete l.core; if (lnSubtle(l)) l.core = true; } changed(); }   // (core by hand on a line to a faded card: kept as l.core)
   else if (o === 'nowp' && l) { pushUndo(); delete l.via; changed(); }
   else if (o === 'rider' && l) addRider(l);
   else if (o === 'flip' && l) { pushUndo(); [l.from, l.to] = [l.to, l.from]; if (l.dir !== 'none') l.dir = 'to'; changed(); }
@@ -8061,7 +8066,7 @@ function drawSpace() {
       const dim = !(lit(A.n) && lit(B.n));
       const p1 = edge(A, B), p2 = edge(B, A), len = Math.hypot(p2.x - p1.x, p2.y - p1.y); if (len < 4) continue;
       const u = {x: (p2.x - p1.x) / len, y: (p2.y - p1.y) / len}, nr = {x: -u.y, y: u.x}, k = (A.k + B.k) / 2;
-      ctx.globalAlpha = fade(it.dep) * (dim ? 0.25 : 1) * (l.subtle && !sel ? 0.55 : 1) * (sel ? 1 : seeThrough(it.dep, (p1.x + p2.x) / 2, (p1.y + p2.y) / 2));   // its label goes with it
+      ctx.globalAlpha = fade(it.dep) * (dim ? 0.25 : 1) * (lnSubtle(l) && !sel ? 0.55 : 1) * (sel ? 1 : seeThrough(it.dep, (p1.x + p2.x) / 2, (p1.y + p2.y) / 2));   // its label goes with it
       ctx.strokeStyle = sel ? '#1e293b' : touch ? '#334155' : ink; ctx.lineWidth = (sel || touch ? 2.4 : 1.3) * clamp(k, 0.5, 1.5);
       ctx.beginPath();
       if (l.dir === 'close') for (const s of [1.6, -1.6]) { ctx.moveTo(p1.x + nr.x * s, p1.y + nr.y * s); ctx.lineTo(p2.x + nr.x * s, p2.y + nr.y * s); }
