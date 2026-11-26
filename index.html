@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-woTcIREqHMCgpueWES6Hs6iu3cB8d4yPz2UsyF+Bs5I=' 'sha256-yox6Czg1cZdyZn99KOeQCMgbi3wGbortL4vZaeCzOgQ='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-SxEyu07teAqOanyPUwikXxssTWWSUMHcRUK+/LSQV5M=' 'sha256-tNp4GjB5TJh+FQIs4p1dV4GSGrE4FVCsnH9/1nru80U='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -734,7 +734,7 @@ td.num{color:var(--muted);font-family:var(--ui);font-size:var(--t-small)}
 td .btn{height:26px}
 
 /* toast */
-#findBar{position:fixed;z-index:45;width:min(440px,calc(100vw - 32px));padding:8px;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px}
+#findBar{position:fixed;z-index:45;width:min(520px,calc(100vw - 32px));padding:8px;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px}
 #findBar[hidden]{display:none}
 #findBar .fb-row{display:flex;align-items:center;gap:4px}
 #findBar.inrow{padding:4px 4px 4px 5px;justify-content:flex-start;box-sizing:border-box}   /* beside the view bar: as tall as it */
@@ -747,8 +747,23 @@ mark.hit{background:#ffe14d;color:#16181d;border-radius:2px;padding:0}   /* the 
 .card.hitIn{outline:2px dashed #f2c200;outline-offset:3px}   /* a box with matches inside it */
 #findRes .fr{display:flex;align-items:baseline;gap:8px;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:calc(13px * var(--fs))}
 #findRes .fr:hover,#findRes .fr.on{background:var(--hover)}
-#findRes .fr b{font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#findRes .fr span{color:var(--muted);font-size:var(--t-small);margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55%}
+#findRes .fr b{font-weight:600;min-width:min(40%,140px);flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#findRes .fr span{color:var(--muted);font-size:var(--t-small);margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:40%}
+#findRes .fr .ff{flex:none;width:80px;font-style:normal;color:var(--muted);font-size:var(--t-small);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}   /* which part of the card the words are in */
+#findRes .fr span:empty + .ff{margin-left:auto}
+#findBar .ftog{font-size:12px;font-weight:600;width:28px;padding:0}
+#findBar .ftog .fw{border-bottom:1.5px solid currentColor;line-height:1.1}
+#findBar .btn.on{background:var(--accent);color:#fff}
+#findOpts{max-height:min(300px,45vh);overflow-y:auto;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:4px 2px;font-size:calc(13px * var(--fs))}
+#findOpts[hidden]{display:none}
+#findOpts .fo-head{display:flex;align-items:center;gap:6px;padding:2px 6px 6px;font-size:var(--t-small)}
+#findOpts .fo-row{display:flex;align-items:center;gap:2px;padding:1px 6px;border-radius:6px}
+#findOpts .fo-row:hover{background:var(--hover)}
+#findOpts .fo-row label{display:flex;align-items:center;gap:6px;flex:1;min-width:0;cursor:pointer}
+#findOpts .fo-row .btn{width:24px;height:24px}
+#findOpts .fo-row.off label{color:var(--muted)}
+#findOpts .grow{flex:1}
+mark.hit.cur{background:#ff9f1c;box-shadow:0 0 0 2px #ff9f1c}   /* the words found, where the card's panel was scrolled to */
 #findRes .fnone{padding:5px 8px;color:var(--muted);font-size:var(--t-small)}
 #wormBar{position:fixed;left:50%;bottom:calc(var(--edge) + 54px);transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:6px 6px 6px 16px;z-index:50;font-size:var(--t-small);max-width:min(640px,92vw)}
 #wormFrame{position:absolute;left:0;top:0;width:1px;height:1px;overflow:visible;pointer-events:none}
@@ -1083,7 +1098,7 @@ body.drop7 #mapName{min-width:60px}
 
 <div id="toast" class="panel" hidden></div>
 <div id="wormBar" class="panel" hidden><span class="wbT"></span><button class="btn solid" data-worm="done">Done</button><button class="btn" data-worm="cancel">Cancel</button></div>
-<div id="findBar" class="panel" hidden><div class="fb-row"><div class="search"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg><input type="text" id="find" placeholder="Search every card, in boxes too" autocomplete="off" spellcheck="false"></div><span id="findN" class="muted"></span><button class="btn icon" data-fb="prev" title="Previous match (Shift+Enter)"><svg viewBox="0 0 16 16"><path d="m4 10 4-4 4 4"/></svg></button><button class="btn icon" data-fb="next" title="Next match (Enter)"><svg viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"/></svg></button><button class="btn icon" data-fb="close" title="Close the search (Esc)"><svg viewBox="0 0 16 16"><path d="m4 4 8 8M12 4l-8 8"/></svg></button></div><div id="findRes"></div></div>
+<div id="findBar" class="panel" hidden><div class="fb-row"><div class="search"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg><input type="text" id="find" placeholder="Search every card, in boxes too" autocomplete="off" spellcheck="false"></div><span id="findN" class="muted"></span><button class="btn icon ftog" data-fo="case" title="Match case (Alt+C)">Aa</button><button class="btn icon ftog" data-fo="word" title="Whole words only (Alt+W): then &quot;AI&quot; doesn't find &quot;said&quot;"><span class="fw">ab</span></button><button class="btn icon" data-fo="opts" title="Search options: which parts of a card to search, and which come first"><svg viewBox="0 0 16 16"><path d="M2 4.5h12M2 11.5h12"/><circle cx="5.5" cy="4.5" r="1.6" fill="var(--panel,#fff)"/><circle cx="10.5" cy="11.5" r="1.6" fill="var(--panel,#fff)"/></svg></button><button class="btn icon" data-fb="prev" title="Previous match (Shift+Enter)"><svg viewBox="0 0 16 16"><path d="m4 10 4-4 4 4"/></svg></button><button class="btn icon" data-fb="next" title="Next match (Enter)"><svg viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"/></svg></button><button class="btn icon" data-fb="close" title="Close the search (Esc)"><svg viewBox="0 0 16 16"><path d="m4 4 8 8M12 4l-8 8"/></svg></button></div><div id="findOpts" tabindex="-1" hidden></div><div id="findRes"></div></div>
 <div id="underBar" class="panel" hidden></div>
 <div id="underOff" class="panel" hidden></div>
 <div id="refBar" class="panel" hidden><span class="grip"></span>
@@ -1128,7 +1143,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '44 (24 Nov 2026, 17:27)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '45 (26 Nov 2026, 14:16)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -2068,7 +2083,9 @@ function loadPrefs() {
       if (PALETTES[p.paletteName]) return {keyName: p.paletteName};
       return Array.isArray(p.palette) && p.palette.length === 7 ? {keyName: 'custom', keyCustom: keyFrom(p.palette.map(c => safeColor(c)))} : {keyName: d.keyName}; })(),
     lineShape: p.lineShape === 'straight' ? 'straight' : 'curved', lineWide: !!p.lineWide,   // new lines
-    fSat: clamp(Number(p.fSat ?? 100), 0, 150), fWarm: clamp(Number(p.fWarm) || 0, -50, 50), fLight: clamp(Number(p.fLight) || 0, -40, 40)
+    fSat: clamp(Number(p.fSat ?? 100), 0, 150), fWarm: clamp(Number(p.fWarm) || 0, -50, 50), fLight: clamp(Number(p.fLight) || 0, -40, 40),
+    findOrder: Array.isArray(p.findOrder) ? p.findOrder.map(String).slice(0, 300) : [], findOff: Array.isArray(p.findOff) ? p.findOff.map(String).slice(0, 300) : [],   // search: the parts of a card in your order, and the ones left out
+    findCase: !!p.findCase, findWord: !!p.findWord, findSort: p.findSort === 'place' ? 'place' : 'field'   // search: match case, whole words only, results by that order or by place
   };
 }
 let prefs = loadPrefs();
@@ -3200,28 +3217,56 @@ function leaveCard() {
   animateLid(false, 1000, () => { flapRun++; flapMoving = false; boxShut = true; setFlap(0); after(); });
   zoomView(back, 1000, u => { insideBlur = 1 - u; }, after);
 }
-const hayOf = n => plain([n.title, n.summary, n.details, ...n.tags, ...Object.values(n.fields).flat()].join(' ')).toLowerCase();
+// What the search looks in: a card's parts, each by name (Title, Summary, Notes, Tags and the map's fields). The
+// search options (in the search bar) can leave parts out and put them in an order: results found in the first ones
+// come first, and the card's panel scrolls to where the words are in the first part they're in. Also: match case,
+// and whole words only (then "AI" doesn't find "said").
+const FIND_BASE = ['Title', 'Summary', 'Notes', 'Tags'];
+function findParts() {   // every part, in your order (any part new since: after them, as it comes by default)
+  const all = ['Title', 'Summary', ...state.fields.filter(f => !FIND_BASE.includes(f)), 'Notes', 'Tags'];
+  const own = (prefs.findOrder || []).filter(f => all.includes(f));
+  return [...own, ...all.filter(f => !own.includes(f))];
+}
+const partText = (n, f) => plain(f === 'Title' ? n.title : f === 'Summary' ? n.summary : f === 'Notes' ? n.details : f === 'Tags' ? n.tags.join('\n')
+  : (v => Array.isArray(v) ? v.join('\n') : typeof v === 'string' ? v : '')((n.fields || {})[f]));
+let reMemo = {k: null, re: null};
+function qRe(q) {   // the words typed, as a pattern (null: nothing typed)
+  if (!q) return null;
+  const k = q + '\u0000' + (prefs.findCase ? 1 : 0) + (prefs.findWord ? 1 : 0);
+  if (reMemo.k !== k) {
+    const t = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    reMemo = {k, re: new RegExp(prefs.findWord ? `(?<![\\p{L}\\p{N}_])${t}(?![\\p{L}\\p{N}_])` : t, 'gu' + (prefs.findCase ? '' : 'i'))};
+  }
+  return reMemo.re;
+}
+const reHas = (re, t) => { re.lastIndex = 0; return re.test(t); };
+function partsHit(n, q) {   // the parts of card n the words are in, in the search's order
+  const re = qRe(q); if (!re || !n) return [];
+  const off = prefs.findOff || [];
+  return findParts().filter(f => !off.includes(f) && reHas(re, partText(n, f)));
+}
+const qHit = (n, q) => partsHit(n, q).length > 0;
 function matches(n) {   // (the list: what the search and the tag filter find)
   if (!n) return false;
   if (filter.tag && !n.tags.includes(filter.tag)) return false;
-  if (filter.q && !hayOf(n).includes(filter.q.toLowerCase())) return false;
+  if (filter.q && !qHit(n, filter.q)) return false;
   return true;
 }
 // The map: a tag filter fades the other cards for as long as it's on. The search fades them only as a preview while
 // you type: any click (a result, a card, the map, anything) brings the map back to normal; the results stay in the list.
 // A box card stays lit when anything inside it matches (a card in a box is a card of the map, just further in).
 let searchDim = false;
-const mapMatch = n => !!n && (!filter.tag || n.tags.includes(filter.tag)) && (!filter.q || !searchDim || hayOf(n).includes(filter.q.toLowerCase()));
+const mapMatch = n => !!n && (!filter.tag || n.tags.includes(filter.tag)) && (!filter.q || !searchDim || qHit(n, filter.q));
 // The search bar's highlights (while it's open with something typed): the words on the cards, marked in yellow, and an
 // outline round each card holding them (dashed round a box with matches inside it).
-const findQ = () => !REF && !SAT && filter.q && $('#findBar') && !$('#findBar').hidden ? filter.q.toLowerCase() : '';
-const findHit = n => { const q = findQ(); return !!q && !!n && hayOf(n).includes(q); };
+const findQ = () => !REF && !SAT && filter.q && $('#findBar') && !$('#findBar').hidden ? filter.q : '';
+const findHit = n => { const q = findQ(); return !!q && !!n && qHit(n, q); };
 const findHitIn = n => !!n && !!n.inner && n.inner.nodes.some(m => findHit(m) || findHitIn(m));
 function markText(t) { return ulHtml(t, markPart); }   // a card's words: underlines drawn whole, and the words found marked
 function markPart(t) {   // the text, escaped, with the words found marked
-  const q = findQ(); t = String(t || ''); if (!q) return esc(t);
-  const lo = t.toLowerCase(); let out = '', i = 0, j;
-  while ((j = lo.indexOf(q, i)) >= 0) { out += esc(t.slice(i, j)) + '<mark class="hit">' + esc(t.slice(j, j + q.length)) + '</mark>'; i = j + q.length; }
+  const re = qRe(findQ()); t = String(t || ''); if (!re) return esc(t);
+  let out = '', i = 0; re.lastIndex = 0;
+  for (const m of t.matchAll(re)) { if (!m[0]) break; out += esc(t.slice(i, m.index)) + '<mark class="hit">' + esc(m[0]) + '</mark>'; i = m.index + m[0].length; }
   return out + esc(t.slice(i));
 }
 const lit = n => mapMatch(n) || (!!n && !!n.inner && !!((filter.q && searchDim) || filter.tag) && n.inner.nodes.some(lit));
@@ -6417,7 +6462,7 @@ function renderPanelContent() {
   const sv = !n && sleeveSel && levelSleeves().find(v => v.id === sleeveSel);
   if (sv) { renderSleevePane(box, sv); return; }
   if (!n) { renderOther(box); return; }
-  renderCard(box, n, panelMode === 'edit');
+  renderCard(box, n, panelMode === 'edit'); findScrollPanel(box, n);
 }
 // The card's tags, at the top of its panel: the primary tag in a labelled outline (or a box to give one), then the
 // secondary tags and a box to add more. Typing a name that doesn't exist yet creates the tag. Hover a tag for x
@@ -6443,18 +6488,18 @@ function renderCard(box, n, edit) {
   const others = state.nodes.filter(o => o.id !== n.id && !conns.some(l => l.from === o.id || l.to === o.id)).sort((a, b) => (a.title || '').localeCompare(b.title || ''));
   const empty = !n.summary && !n.tags.length && !shownF.length && !n.details && !conns.length;
   const title = edit ? `<input type="text" class="d-title edx" data-k="title" value="${esc(n.title)}" placeholder="Untitled" spellcheck="true">`
-                     : `<div class="d-title" data-edit="title">${n.title ? ulHtml(n.title) : '<i>Untitled</i>'}</div>`;
+                     : `<div class="d-title" data-edit="title">${n.title ? markText(n.title) : '<i>Untitled</i>'}</div>`;
   const btn = edit ? `<button class="btn accent" data-act="read" title="Back to reading (Esc)">Done</button>`
                    : `<button class="btn solid" data-act="edit" title="Edit this card (E, or double-click anything here)">Edit</button>`;
   const text = (k, cls, val, ph) => edit ? `<textarea class="edx ${cls}" data-k="${k}" rows="1" placeholder="${ph}">${esc(val)}</textarea>`
-                                          : `<div class="${cls}" data-edit="${k}">${ulHtml(val)}</div>`;
+                                          : `<div class="${cls}" data-edit="${k}">${markText(val)}</div>`;
   const listRow = f => { const v = Array.isArray(n.fields[f]) ? n.fields[f] : [];
     return `<span>${esc(f)}</span><div class="flist" data-flist="${esc(f)}">` + (edit
       ? v.map((x, i) => `<div class="fitem"><textarea class="edx" data-field="${esc(f)}" data-li="${i}" rows="1" placeholder="–">${esc(x)}</textarea><button class="btn icon" data-lidel="${i}" title="Remove this item"><svg viewBox="0 0 16 16"><path d="m4 4 8 8M12 4l-8 8"/></svg></button></div>`).join('') + `<button class="btn fadd" data-liadd="${esc(f)}">+ Add</button>`
-      : v.filter(x => x.trim()).map(x => `<div class="fitem" data-edit="f:${esc(f)}">${ulHtml(x)}</div>`).join('')) + '</div>'; };
+      : v.filter(x => x.trim()).map(x => `<div class="fitem" data-edit="f:${esc(f)}">${markText(x)}</div>`).join('')) + '</div>'; };
   const markRow = f => { const m = markOf(f), o = markNow(n, f);
     return `<span>${esc(f)}</span><div class="mkval">${markBadge(o || m.blank, '', `data-mkp="${esc(f)}" title="Click to change (Shift-click: back one)"`)}${o ? `<span>${esc(o.name)}</span>` : '<span class="muted">Not set</span>'}</div>`; };
-  const fieldRow = f => isMark(f) ? markRow(f) : isList(f) ? listRow(f) : `<span>${esc(f)}</span>` + (edit ? `<textarea class="edx" data-field="${esc(f)}" rows="1" placeholder="–">${esc(n.fields[f] ?? '')}</textarea>` : `<div data-edit="f:${esc(f)}">${ulHtml(n.fields[f])}</div>`);
+  const fieldRow = f => isMark(f) ? markRow(f) : isList(f) ? listRow(f) : `<span>${esc(f)}</span>` + (edit ? `<textarea class="edx" data-field="${esc(f)}" rows="1" placeholder="–">${esc(n.fields[f] ?? '')}</textarea>` : `<div data-edit="f:${esc(f)}">${markText(n.fields[f])}</div>`);
   box.innerHTML = `<div class="p-head"><span class="strip" style="background:${strip}"></span>${title}${canEject() ? EJECT_BTN : ''}${BOX_BTN(n)}${btn}${FOCUS_BTN(focusMode)}${minBtn()}</div>
     <div class="p-body">
       ${tagRow(n)}
@@ -11529,8 +11574,8 @@ function findPlace() {   // in the row of the bars at the top, in the gap beside
     let from = 0;   // the left end of the gap: the top bar's right end if it's in the same row (or the list's, if that reaches up into it)
     if (tb && Math.abs(tb.top - vb.top) < 20) from = Math.max(from, tb.right);
     if (lr.width && lr.top < vb.bottom && lr.right < vb.left) from = Math.max(from, lr.right);
-    const gap = vb.left - from - 24, w = Math.min(440, gap);
-    if (w >= 250) {
+    const gap = vb.left - from - 24, w = Math.min(520, gap);
+    if (w >= 400) {   // (room for the search box beside its option buttons; less: under the bars, at full width)
       b.classList.add('inrow'); b.style.width = w + 'px';
       b.style.left = from + 12 + (gap - w) / 2 + w / 2 + 'px'; b.style.top = vb.top + 'px'; b.style.minHeight = vb.height + 'px';
       return;
@@ -11549,21 +11594,65 @@ function findOpen(on) {
   const b = $('#findBar'); if (!b) return;
   if (!on) {
     if (b.hidden) return;
-    b.hidden = true; $('#findRes').innerHTML = ''; $('#findN').textContent = '';
+    b.hidden = true; $('#findRes').innerHTML = ''; $('#findN').textContent = ''; findJump = null; $('#findOpts').hidden = true;
     if (filter.q) { filter.q = ''; $('#search').value = ''; $('#find').value = ''; searchDim = false; renderIndex(); if (!$('#tableView').hidden) renderTableView(); }
     renderMap(); findClean(); if (typeof updateBlurClip === 'function') updateBlurClip(); return;
   }
   const was = !b.hidden;
   b.hidden = false; findPlace();
   if (!was) { $('#find').value = filter.q; findSel = 0; findCur = ''; findHere = inside.map(x => x.id); searchDim = false; renderMap(); }
-  findRender(); $('#find').focus(); $('#find').select();
+  findRender(); findToggles(); $('#find').focus(); $('#find').select();
   if (typeof updateBlurClip === 'function') updateBlurClip();
+}
+// After going to a search result: the card's panel, scrolled so the first of the words, in the first part of the card
+// they're in, sits in the middle (marked brighter than the others).
+let findJump = null;
+function findScrollPanel(box, n) {
+  if (!findJump || findJump.id !== n.id || !findQ() || panelMode === 'edit') return;
+  const j = findJump; findJump = null;
+  const sel = j.part === 'Summary' ? '[data-edit="summary"]' : j.part === 'Notes' ? '[data-edit="details"]' : j.part === 'Title' || j.part === 'Tags' || !j.part ? '' : `[data-edit="f:${CSS.escape(j.part)}"]`;
+  requestAnimationFrame(() => {
+    const pb = box.querySelector('.p-body'); if (!pb) return;
+    const mk = sel ? [...box.querySelectorAll(sel)].map(e => e.querySelector('mark.hit')).find(Boolean) : null;
+    if (!mk) { pb.scrollTop = 0; return; }
+    mk.classList.add('cur');
+    const r = mk.getBoundingClientRect(), pr = pb.getBoundingClientRect();
+    pb.scrollTop += r.top - pr.top - pb.clientHeight / 2 + r.height / 2;
+  });
+}
+// The search options: match case and whole words (the two buttons, lit when on), and (the third button) which parts
+// of a card to search, in which order, and whether the results come by that order or by place on the map.
+function findToggles() {
+  for (const [k, on] of [['case', prefs.findCase], ['word', prefs.findWord], ['opts', !$('#findOpts').hidden]]) { const b = $(`#findBar [data-fo="${k}"]`); if (b) b.classList.toggle('on', !!on); }
+}
+const FO_UP = '<svg viewBox="0 0 16 16"><path d="m4 10 4-4 4 4"/></svg>', FO_DN = '<svg viewBox="0 0 16 16"><path d="m4 6 4 4 4-4"/></svg>';
+function findOptsRender() {
+  const box = $('#findOpts'); if (!box || box.hidden) return;
+  const parts = findParts(), off = prefs.findOff || [], st = box.scrollTop, a = document.activeElement;
+  const key = a && box.contains(a) ? (a.dataset.foOn != null ? `[data-fo-on="${CSS.escape(a.dataset.foOn)}"]` : a.id === 'findSort' ? '#findSort' : '') : null;   // (what had the focus: to have it again, so the list stays open)
+  box.innerHTML = `<div class="fo-head"><span class="muted">Search in (first to last)</span><span class="grow"></span><label class="muted">Results by <select id="findSort"><option value="field"${prefs.findSort !== 'place' ? ' selected' : ''}>this order</option><option value="place"${prefs.findSort === 'place' ? ' selected' : ''}>place on the map</option></select></label></div>`
+    + parts.map((f, i) => `<div class="fo-row${off.includes(f) ? ' off' : ''}"><label><input type="checkbox" data-fo-on="${esc(f)}"${off.includes(f) ? '' : ' checked'}>${esc(f)}</label><button class="btn icon" data-fo-up="${i}"${i ? '' : ' disabled'} title="Earlier">${FO_UP}</button><button class="btn icon" data-fo-dn="${i}"${i < parts.length - 1 ? '' : ' disabled'} title="Later">${FO_DN}</button></div>`).join('');
+  box.scrollTop = st;
+  if (key !== null) (key && box.querySelector(key) || box).focus({preventScroll: true});
+}
+function findRefresh() {   // the options changed: everything the search shows, again
+  savePrefs(); findSel = 0; findCur = ''; findJump = null;
+  renderMap(); findClean(); renderIndex(); if (!$('#tableView').hidden) renderTableView(); findRender(); findOptsRender(); findToggles();
+  if (selNode()) renderPanel();
+}
+function findOpt(k) {
+  if (k === 'case') prefs.findCase = !prefs.findCase;
+  else if (k === 'word') prefs.findWord = !prefs.findWord;
+  else if (k === 'opts') { $('#findOpts').hidden = !$('#findOpts').hidden; findOptsRender(); findToggles(); return; }
+  findRefresh();
 }
 function findRows() {   // the matches, the ones in the box you searched from first (its own page, then boxes inside it): the order holds as you go
   if (!filter.q) return [];
   const here = findHere, within = r => here.every((id, i) => r.path[i] === id);
   const rank = r => within(r) ? (r.path.length === here.length ? 0 : 1) : 2;
-  return listRows().map((r, i) => ({r, i, k: rank(r)})).sort((a, b) => a.k - b.k || a.i - b.i).map(x => x.r);
+  const parts = findParts(), byPart = prefs.findSort !== 'place';   // (by your order of the parts first, unless sorting by place)
+  return listRows().map((r, i) => { const hits = partsHit(r.n, filter.q); return {r: {...r, hits}, i, k: rank(r), f: hits.length ? parts.indexOf(hits[0]) : 999}; })
+    .sort((a, b) => (byPart ? a.f - b.f : 0) || a.k - b.k || a.i - b.i).map(x => x.r);
 }
 function findRender() {
   const box = $('#findRes'); if (!box || $('#findBar').hidden) return;
@@ -11574,7 +11663,7 @@ function findRender() {
   findSel = rows.length ? (findSel % rows.length + rows.length) % rows.length : 0;
   $('#findN').textContent = rows.length ? `${findSel + 1} of ${rows.length}` : 'none';
   const shown = rows.slice(0, 50), here = inside.length;
-  box.innerHTML = shown.length ? shown.map((r, i) => `<div class="fr${i === findSel ? ' on' : ''}" tabindex="-1" data-i="${i}"><b>${markText(r.n.title || 'Untitled')}</b><span>${esc(whereText(r) || (here ? 'on the main page' : ''))}</span></div>`).join('')
+  box.innerHTML = shown.length ? shown.map((r, i) => `<div class="fr${i === findSel ? ' on' : ''}" tabindex="-1" data-i="${i}"><b>${markText(r.n.title || 'Untitled')}</b><span>${esc(whereText(r) || (here ? 'on the main page' : ''))}</span><em class="ff" title="Found in: ${esc(r.hits.join(', '))}">${esc(r.hits[0] || '')}${r.hits.length > 1 ? ' +' + (r.hits.length - 1) : ''}</em></div>`).join('')
     + (rows.length > shown.length ? `<div class="fnone">and ${rows.length - shown.length} more: type more to narrow it</div>` : '')
     : '<div class="fnone">No cards match</div>';
   const on = box.querySelector('.fr.on'); if (on) on.scrollIntoView({block: 'nearest'});
@@ -11583,6 +11672,7 @@ function findGo(i) {   // go to match i (and the next Enter goes on from it)
   const rows = findRows(); if (!rows.length) return;
   findSel = (i % rows.length + rows.length) % rows.length;
   const r = rows[findSel]; findCur = r.n.id; findRender();
+  findJump = {id: r.n.id, part: r.hits[0]};   // (its panel opens scrolled to the words)
   goToCard(r.path, r.n.id);
 }
 function findStep(d) {   // Enter: the highlighted match first, then on from the one you're at
@@ -11598,12 +11688,29 @@ $('#find').addEventListener('keydown', e => {
   if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); findCur = ''; findSel += e.key === 'ArrowDown' ? 1 : -1; findRender(); return; }
   if (e.key === 'Enter') { e.preventDefault(); findStep(e.shiftKey ? -1 : 1); return; }
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') { e.preventDefault(); e.stopPropagation(); $('#find').select(); }
+  if (e.altKey && !e.ctrlKey && (e.code === 'KeyC' || e.code === 'KeyW')) { e.preventDefault(); findOpt(e.code === 'KeyC' ? 'case' : 'word'); }
 });
 $('#findRes').addEventListener('click', e => { const r = e.target.closest('.fr'); if (!r) return; findGo(+r.dataset.i); $('#find').focus(); });
 $('#findBar').addEventListener('click', e => {
+  const o = e.target.closest('[data-fo], [data-fo-up], [data-fo-dn]');
+  if (o) {
+    if (o.dataset.fo) { findOpt(o.dataset.fo); if (o.dataset.fo !== 'opts') $('#find').focus(); return; }
+    const parts = findParts(), i = +(o.dataset.foUp ?? o.dataset.foDn), j = o.dataset.foUp != null ? i - 1 : i + 1;
+    if (j < 0 || j >= parts.length) return;
+    [parts[i], parts[j]] = [parts[j], parts[i]]; prefs.findOrder = parts; findRefresh();
+    const b2 = $(`#findOpts [data-fo-${o.dataset.foUp != null ? 'up' : 'dn'}="${j}"]`); if (b2 && !b2.disabled) b2.focus(); else $('#findOpts').focus();
+    return;
+  }
   const b = e.target.closest('[data-fb]'); if (!b) return;
   if (b.dataset.fb === 'close') findOpen(false);
   else findStep(b.dataset.fb === 'next' ? 1 : -1);
+});
+$('#findBar').addEventListener('change', e => {
+  if (e.target.id === 'findSort') { prefs.findSort = e.target.value === 'place' ? 'place' : 'field'; findRefresh(); return; }
+  const f = e.target.dataset && e.target.dataset.foOn; if (f == null) return;
+  const off = new Set(prefs.findOff || []); if (e.target.checked) off.delete(f); else off.add(f);
+  if (findParts().every(p => off.has(p))) { e.target.checked = true; toast('Leave at least one part of the card to search in.'); return; }
+  prefs.findOff = [...off]; findRefresh();
 });
 addEventListener('resize', findPlace);
 $('#tagFilter').onchange = e => setTagFilter(e.target.value);
