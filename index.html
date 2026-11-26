@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-SxEyu07teAqOanyPUwikXxssTWWSUMHcRUK+/LSQV5M=' 'sha256-tNp4GjB5TJh+FQIs4p1dV4GSGrE4FVCsnH9/1nru80U='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-wU/XrLcEOqT3wVGQMiVE0VtfnTeA1jCk2EjKgcLmBlM=' 'sha256-ganvYoOV1J825Bhkuh62+i806DnoqGxEvAyU+fCnJEo='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -240,6 +240,10 @@ body.picking,body.picking *{cursor:url("data:image/svg+xml,%3Csvg%20xmlns='http:
 #links g.wide.close .vis,#links g.wide.close.selected .vis{stroke-width:4}   /* (a wide close link: two 4px rails) */
 #links g.wide .hit{stroke-width:22}
 #links .bulge{fill:var(--link);stroke:none}   /* where a line swells round a card in it */
+#links g[data-swl]{pointer-events:none}   /* (the swell is drawn above every line, solid, so lines to the card slip in under it: a see-through line is matched by mixing its colour with the map's) */
+#links g.subtle[data-swl]:not(.dim):not(.next):not(.low):not(.far),#links g.sub[data-swl]:not(.dim):not(.next):not(.low):not(.far){opacity:1}
+#links g.subtle[data-swl]:not(.dim):not(.next):not(.low):not(.far):not(.hl):not(.selected) .bulge{fill:color-mix(in srgb,var(--lc,var(--link)) 55%,var(--canvas))}
+#links g.sub[data-swl]:not(.dim):not(.next):not(.low):not(.far) .bulge{fill:color-mix(in srgb,var(--lc,var(--link)) calc(var(--sub-op,.45) * 100%),var(--canvas))}
 #links g.hl .bulge{fill:var(--map-muted)}
 #links g.selected .bulge{fill:var(--accent)}
 #links g.colored .bulge{fill:var(--lc)}
@@ -1143,7 +1147,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '45 (26 Nov 2026, 14:16)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '46 (26 Nov 2026, 14:46)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -3886,11 +3890,12 @@ function riderTidy() {
 // On the path d (lw px wide), a level card w by h at t along it: its corner, and the swell round it. The swell is a
 // rounded box 5px clear of the card, and where the line goes in and out of it, the line flares a little to meet it
 // (a short, smooth curve), so the card sits in the line rather than on top of it.
+const RIDER_PAD = 5;   // the swell round a card in a line: this far clear of the card
 function riderPlace(d, w, h, t, flat, lw, ext) {   // (ext: more room below the card, for a box's handle; flat: no longer used, cards are always level)
   const {path} = curveMeasure(); path.setAttribute('d', d);
   const L = path.getTotalLength(); if (!(L > 0)) return null;
   const at = s => path.getPointAtLength(clamp(s, 0, L));
-  const PAD = 5, RAD = 9, FL = 22, FW = 9;   // clear of the card; the box's corners; the flare's length and how much wider it gets
+  const PAD = RIDER_PAD, RAD = 9, FL = 22, FW = 9;   // clear of the card; the box's corners; the flare's length and how much wider it gets
   const turn = s => { const a = at(s - 2), b = at(s + 2); return Math.atan2(b.y - a.y, b.x - a.x); };
   const half = ang => (w * Math.abs(Math.cos(ang)) + h * Math.abs(Math.sin(ang))) / 2 + PAD;   // the box's reach along the line
   let s = clamp(t, 0, 1) * L;
@@ -3909,7 +3914,7 @@ function riderPlace(d, w, h, t, flat, lw, ext) {   // (ext: more room below the 
       const u = clamp(i / k * (FL + 6) / FL, 0, 1), hw = lw / 2 + FW * u * u;   // (widening as it nears the box)
       up.push(f(q.x + nx * hw) + ' ' + f(q.y + ny * hw)); dn.push(f(q.x - nx * hw) + ' ' + f(q.y - ny * hw));
     }
-    out += 'M' + up.join('L') + 'L' + dn.reverse().join('L') + 'Z';
+    out += '|M' + up.join('L') + 'L' + dn.reverse().join('L') + 'Z';   // (each shape a path of its own: in one path, where they overlap they'd cancel out, leaving holes)
   }
   return {x: Math.round((M.x - w / 2) * 10) / 10, y: Math.round((M.y - h / 2) * 10) / 10, deg: 0, bulge: out};
 }
@@ -3927,7 +3932,7 @@ function riderDraw(l, d) {
     const was = at2(n); if (Math.hypot(was.x - r.x, was.y - r.y) > 0.05) put2(n, r.x, r.y);
     const q = at2(n); if (Math.hypot(was.x - q.x, was.y - q.y) > 0.5) riderMoved = true;   // (it moved: the other lines are drawn once more, round where it is now)
     el.style.left = q.x + 'px'; el.style.top = q.y + 'px'; el.style.rotate = r.deg ? r.deg + 'deg' : '';
-    out += `<path class="bulge" d="${r.bulge}"/>`;
+    out += r.bulge.split('|').map(d => `<path class="bulge" d="${d}"/>`).join('');
   }
   return out;
 }
@@ -4093,7 +4098,8 @@ function routeEnds(pts, A, B, l) {
 // A card as lines see it: with an outline (its key colour's), the outline counts as its edge, so lines start and
 // end at the outline rather than at the card inside it (the outline: 3px out, 3px thick).
 function lineBox(id) {
-  const b = cardBox(id), n = b && getNode(id); if (!n || !keyOut(n.color)) return b;
+  const b = cardBox(id), n = b && getNode(id);
+  if (!n || !keyOut(n.color)) return b;
   const o = 6; return {x: b.x - o, y: b.y - o, w: b.w + 2 * o, h: b.h + 2 * o, cx: b.cx, cy: b.cy};
 }
 function linkGeom(l) {
@@ -5727,7 +5733,8 @@ function renderLinks() {
   // line, and only as a last resort ignoring other lines (cards: 7px clear). Gives {at, off} for curveWords, or null for the middle.
   // a line's label, in its own group in the layer above the lines (with the line's classes and colour, so it's
   // styled just as it was inside the line's group)
-  const labPart = (lineH, lab) => lab ? lineH.match(/^<g[^>]*>/)[0].replace(' data-link=', ' data-lab=') + lab + '</g>' : '';
+  const labPart = (lineH, lab, swell = '') => { if (!lab && !swell) return ''; const tag = lineH.match(/^<g[^>]*>/)[0];
+    return '<g>' + (swell ? tag.replace(' data-link=', ' data-swl=') + swell + '</g>' : '') + (lab ? tag.replace(' data-link=', ' data-lab=') + lab + '</g>' : '') + '</g>'; };   // (and the swell round any card in the line: above every line too, drawn solid, so the lines to that card slip in under it)
   const curveSpot = (l, P, label) => {
     const total = curveLabelWidth(label) * (l.ls || 1), {path} = curveMeasure(); path.setAttribute('d', curveD(P));
     const L = path.getTotalLength(); if (total > L * 0.92) return null;
@@ -5769,7 +5776,7 @@ function renderLinks() {
   for (const l0 of state.links) {
     const l = withStar(l0), g = linkGeom(l);
     if (!g) continue;
-    const hBefore = h.length, gBefore = grads.length, safe = String(l.id).replace(/[^\w-]/g, '_');
+    const hBefore = h.length, gBefore = grads.length, safe = String(l.id).replace(/[^\w-]/g, '_'); let swell = '';
     let tk = 0;
     const sel = isSel('link', l.id);
     const touches = sn && (l.from === sn.id || l.to === sn.id);
@@ -5790,7 +5797,7 @@ function renderLinks() {
         if (!(l.wide && l.dir !== 'close')) h += (start ? '' : `<circle class="dot" cx="${P[0].x}" cy="${P[0].y}" r="${dotR}"/>`) + (end ? '' : `<circle class="dot" cx="${E.x}" cy="${E.y}" r="${dotR}"/>`);   // (a wide line just ends square at the card: a dot only made a bump)
       }
       if (l.wide || ridersBy.has(l.id)) linkShape.set(l.id, d);
-      h += riderDraw(l, d);   // (the cards in it, and the line swelling round them)
+      swell = riderDraw(l, d);   // (the cards in it, and the line swelling round them: drawn in the layer above)
       h += `<path class="hit" d="${d}"/>`;
       if (l.note) h += `<title>${esc((l.label ? l.label + ': ' : '') + l.note)}</title>`;
       if (sel) { const W = l.via || halfway(P, ridersBy.has(l.id) ? 0.22 : 0.5);   // picked: its waypoint (or, if it has none, a dot halfway along) to drag
@@ -5809,7 +5816,7 @@ function renderLinks() {
         }
       }
       const lab = h.slice(labAt); h = h.slice(0, labAt);
-      h += '</g>'; parts.push([l.id, h.slice(hBefore), labPart(h.slice(hBefore), lab)]);
+      h += '</g>'; parts.push([l.id, h.slice(hBefore), labPart(h.slice(hBefore), lab, swell)]);
       continue;
     }
     const {p1, p2} = g, dx = p2.x - p1.x, dy = p2.y - p1.y, len = Math.hypot(dx, dy) || 1;
@@ -5872,7 +5879,7 @@ function renderLinks() {
     if (depthStyle) depthStyle = ` style="${depthStyle}"`;
     h += `<g class="${cls}${lnSubtle(l) ? ' subtle' : ''}${l.dir === 'close' ? ' close' : ''}${l.wide ? ' wide' : ''}${l.color ? ' colored' : ''}${deep ? ' deep' : ''}" data-link="${esc(l.id)}"${depthStyle}>`;
     const sd = `M${p1.x} ${p1.y}L${p2.x} ${p2.y}`; if (l.wide || ridersBy.has(l.id)) linkShape.set(l.id, sd);
-    h += `${body}${riderDraw(l, sd)}<line class="hit" x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}"/>`;   // (the cards in it, and the line swelling round them)
+    swell = riderDraw(l, sd); h += `${body}<line class="hit" x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}"/>`;   // (the cards in it, and the line swelling round them)
     if (l.note) h += `<title>${esc((l.label ? l.label + ': ' : '') + l.note)}</title>`;
     // The label sits at the line's middle if its whole text box is clear of every card (by 10px) and of every
     // other line. Otherwise it slides along its line to the nearest clear spot: card edges are worked out exactly,
@@ -5942,7 +5949,7 @@ function renderLinks() {
     const lab = h.slice(labAt); h = h.slice(0, labAt);
     h += `</g>`;
     const gp = grads.slice(gBefore);   // this line's tunnel shading travels with it
-    parts.push([l.id, h.slice(hBefore, h.length - 4) + (gp ? `<defs>${gp}</defs>` : '') + '</g>', labPart(h.slice(hBefore), lab)]);
+    parts.push([l.id, h.slice(hBefore, h.length - 4) + (gp ? `<defs>${gp}</defs>` : '') + '</g>', labPart(h.slice(hBefore), lab, swell)]);
   }
   let layer = svg.querySelector('#linkLayer');
   if (!layer) { svg.innerHTML = marks + '<g id="lcMarks"></g><g id="linkLayer"></g><g id="labLayer"></g><g id="tempLayer"></g>'; layer = svg.querySelector('#linkLayer'); linkDom.clear(); labDom.clear(); }
