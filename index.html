@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-wU/XrLcEOqT3wVGQMiVE0VtfnTeA1jCk2EjKgcLmBlM=' 'sha256-ganvYoOV1J825Bhkuh62+i806DnoqGxEvAyU+fCnJEo='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-zk0NQWxpKCt4h6cRXONVmOHWkXynAneVU7SLvwjujis=' 'sha256-YmuG4DkmC7a3ufUuffzpFRXNWuVepF0AdRi2BpiEpRQ='; style-src 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src https://api.github.com; frame-src 'self'; child-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1147,7 +1147,7 @@ body.drop7 #mapName{min-width:60px}
 (() => {
   'use strict';
   const CFG_KEY = 'mmphone.v1', API = 'https://api.github.com', ROUNDS = 600000;
-  const P = window.PHONE = {on: true, version: '46 (26 Nov 2026, 14:46)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
+  const P = window.PHONE = {on: true, version: '47 (26 Nov 2026, 17:40)'};   // (filled in by build_phone.py: a number that goes up each time the page is published, and when)
   let token = '', cfg = null, cur = null, saving = null, again = false, retryT = 0, saveT = 0, hiddenAt = 0;
 
   /* ---------- the key, locked with the passcode ---------- */
@@ -3887,35 +3887,24 @@ function riderTidy() {
     ridersBy.get(l.id).push(n);
   }
 }
-// On the path d (lw px wide), a level card w by h at t along it: its corner, and the swell round it. The swell is a
-// rounded box 5px clear of the card, and where the line goes in and out of it, the line flares a little to meet it
-// (a short, smooth curve), so the card sits in the line rather than on top of it.
+// On the path d (lw px wide), a level card w by h at t along it: its corner, and the swell round it: a rounded box
+// 5px clear of the card, in the line's colour, drawn above the lines so that every line to or through the card runs
+// in under it (like a station on a line).
 const RIDER_PAD = 5;   // the swell round a card in a line: this far clear of the card
 function riderPlace(d, w, h, t, flat, lw, ext) {   // (ext: more room below the card, for a box's handle; flat: no longer used, cards are always level)
   const {path} = curveMeasure(); path.setAttribute('d', d);
   const L = path.getTotalLength(); if (!(L > 0)) return null;
   const at = s => path.getPointAtLength(clamp(s, 0, L));
-  const PAD = RIDER_PAD, RAD = 9, FL = 22, FW = 9;   // clear of the card; the box's corners; the flare's length and how much wider it gets
+  const PAD = RIDER_PAD, RAD = 9, FL = 22;   // clear of the card; the box's corners; room kept from the line's ends
   const turn = s => { const a = at(s - 2), b = at(s + 2); return Math.atan2(b.y - a.y, b.x - a.x); };
   const half = ang => (w * Math.abs(Math.cos(ang)) + h * Math.abs(Math.sin(ang))) / 2 + PAD;   // the box's reach along the line
   let s = clamp(t, 0, 1) * L;
   const room = half(turn(s)) + FL + 4;
   s = L < room * 2 ? L / 2 : clamp(s, room, L - room);   // (clear of the line's ends)
   const M = at(s), x0 = M.x - w / 2 - PAD, x1 = M.x + w / 2 + PAD, y0 = M.y - h / 2 - PAD, y1 = M.y + h / 2 + PAD + ext;
-  const inBox = q => q.x > x0 && q.x < x1 && q.y > y0 && q.y < y1;
   const f = v => v.toFixed(1);
   const r = Math.min(RAD, (x1 - x0) / 2, (y1 - y0) / 2);
   let out = `M${f(x0 + r)} ${f(y0)}H${f(x1 - r)}Q${f(x1)} ${f(y0)} ${f(x1)} ${f(y0 + r)}V${f(y1 - r)}Q${f(x1)} ${f(y1)} ${f(x1 - r)} ${f(y1)}H${f(x0 + r)}Q${f(x0)} ${f(y1)} ${f(x0)} ${f(y1 - r)}V${f(y0 + r)}Q${f(x0)} ${f(y0)} ${f(x0 + r)} ${f(y0)}Z`;
-  for (const dir of [-1, 1]) {   // the flare where the line meets the box, on each side
-    let e = s; while (e > 0 && e < L && inBox(at(e))) e += dir;   // where the line leaves the box
-    const s0 = e + dir * FL, s1 = e - dir * 6, k = 12, up = [], dn = [];   // (from FL px out, narrow, to just inside the box, wide)
-    for (let i = 0; i <= k; i++) {
-      const si = s0 + (s1 - s0) * i / k, q = at(si), a = at(si - 1.5), bq = at(si + 1.5), len = Math.hypot(bq.x - a.x, bq.y - a.y) || 1, nx = -(bq.y - a.y) / len, ny = (bq.x - a.x) / len;
-      const u = clamp(i / k * (FL + 6) / FL, 0, 1), hw = lw / 2 + FW * u * u;   // (widening as it nears the box)
-      up.push(f(q.x + nx * hw) + ' ' + f(q.y + ny * hw)); dn.push(f(q.x - nx * hw) + ' ' + f(q.y - ny * hw));
-    }
-    out += '|M' + up.join('L') + 'L' + dn.reverse().join('L') + 'Z';   // (each shape a path of its own: in one path, where they overlap they'd cancel out, leaving holes)
-  }
   return {x: Math.round((M.x - w / 2) * 10) / 10, y: Math.round((M.y - h / 2) * 10) / 10, deg: 0, bulge: out};
 }
 // A line's cards, each put in its place on the line as drawn (path d); gives the swells to draw with the line.
@@ -4099,6 +4088,7 @@ function routeEnds(pts, A, B, l) {
 // end at the outline rather than at the card inside it (the outline: 3px out, 3px thick).
 function lineBox(id) {
   const b = cardBox(id), n = b && getNode(id);
+  if (n && n.on && riderOf.has(id) && ridersLive()) { const o = RIDER_PAD; return {x: b.x - o, y: b.y - o, w: b.w + 2 * o, h: b.h + 2 * o, cx: b.cx, cy: b.cy}; }   // a card in a line: lines to it land on the swell round it (an arrow's tip at its edge; a plain end runs on under it)
   if (!n || !keyOut(n.color)) return b;
   const o = 6; return {x: b.x - o, y: b.y - o, w: b.w + 2 * o, h: b.h + 2 * o, cx: b.cx, cy: b.cy};
 }
